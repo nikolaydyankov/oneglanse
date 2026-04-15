@@ -1,6 +1,9 @@
 import { spawnSync } from "node:child_process";
 import { ExternalServiceError, toErrorMessage } from "@oneglanse/errors";
-import { ensureAuthDirectories, getRuntimeProfileSeedPlan } from "@oneglanse/services";
+import {
+	ensureAuthDirectories,
+	getRuntimeProfileSeedPlan,
+} from "@oneglanse/services";
 import {
 	type Provider,
 	resolveAppMode,
@@ -338,7 +341,8 @@ export async function launchContext(provider: Provider): Promise<{
 		});
 
 		context = new PlaywrightBrowserContextCompat(rawContext);
-		const browser = (rawBrowser as unknown as Browser | null) ?? context.getBrowser();
+		const browser =
+			(rawBrowser as unknown as Browser | null) ?? context.getBrowser();
 
 		return {
 			browser,
