@@ -1,138 +1,9 @@
 ---
 title: Getting Started
-description: Use OneGlanse in the cloud app, run it locally, or self-host the full stack.
+description: Use OneGlanse in the cloud app, run it locally, or self-host the full stack on your own VPS.
 ---
 
 # Getting Started
-
-OneGlanse supports three setup paths.
-
-## 1. Use the Cloud App
-
-Use the hosted app if you want the fastest setup:
-
-- App: `https://app.oneglanse.com`
-- Landing: `https://oneglanse.com`
-- Docs: `https://docs.oneglanse.com/`
-
-Recommended flow:
-
-1. Sign in
-2. Create or select a workspace
-3. Add prompts
-4. Review responses, sources, and dashboard metrics
-
-## 2. Run It Locally
-
-Use local mode when you want to run the web app and agent on your own machine.
-
-### Requirements
-
-- Node.js 20+
-- pnpm 10+
-- Docker + Docker Compose
-
-### Install & Start
-
-```bash
-pnpm install
-pnpm local
-```
-
-This:
-
-- Creates `.env` if missing (with auto-generated secrets)
-- Bootstraps the Camoufox browser runtime automatically on first run
-- Starts Postgres, ClickHouse, and Redis
-- Runs database migrations
-- Starts the web app and the agent
-- Opens the app at `http://localhost:3000`
-
-### Local Notes
-
-- Local mode supports interactive provider auth via `/providers`
-- Local mode supports manual prompt runs
-- Local mode does not support recurring scheduling
-
-## 3. Self-Host It
-
-Use self-host mode when you want the full product in your own infrastructure.
-
-### Install & Start
-
-```bash
-pnpm install
-pnpm self-host
-```
-
-This starts:
-
-- The main app stack (`docker-compose.yml`) — web, agent, Postgres, ClickHouse, Redis
-- The always-on public stack (`docker-compose.public.yml`) — Nginx gateway, landing page
-- Tries to pull the latest published images before starting
-- Falls back automatically to a local Docker build if pulling is unavailable
-
-Default ports:
-
-- Landing: `3000`
-- App (via gateway): `3001`
-- Auth upload API: `3333`
-
-Persistent state defaults to `/opt/oneglanse/storage`. Override with `ONEGLANSE_STORAGE_ROOT` if your VPS should store data elsewhere.
-
-### Docker Image Overrides
-
-To use custom Docker images instead of the published ones, set these in `.env` before running `pnpm self-host`:
-
-- `ONEGLANSE_WEB_IMAGE`
-- `ONEGLANSE_AGENT_IMAGE`
-- `ONEGLANSE_POSTGRES_IMAGE`
-- `ONEGLANSE_LANDING_IMAGE`
-
-Use `pnpm self-host:build` only if you intentionally want to build images from local source.
-
-### Provider Auth Setup
-
-Interactive provider login cannot run on a headless server. Capture sessions locally and transfer them to the VPS.
-
-**Step 1 — Start your VPS first**
-
-```bash
-pnpm self-host
-```
-
-The auth upload API must be running on port `3333` before you transfer sessions.
-
-**Step 2 — Transfer sessions from your local machine**
-
-If `ONEGLANSE_VPS_IP` and `AGENT_AUTH_UPLOAD_TOKEN` are set in your local `.env`, run:
-
-```bash
-pnpm upload:vps
-```
-
-This uploads any existing local sessions directly without reopening the auth flow.
-
-If you don't have local sessions yet, or want to capture new ones:
-
-```bash
-pnpm auth -- --upload-url http://YOUR_VPS_HOST:3333/auth/sessions --upload-token YOUR_TOKEN
-```
-
-This opens the local `/providers` page, lets you connect providers interactively, and uploads the saved sessions to the VPS.
-
-**Step 3 — Verify transfer**
-
-The agent reads transferred sessions at the start of each job run and reseeds the browser profile automatically if the session has changed.
-
-### Self-Host Notes
-
-- Re-run the transfer command any time a provider session expires
-- Recurring scheduling is supported in self-host mode
-- App-only updates: `pnpm self-host:app`
-- Public stack updates: `pnpm self-host:public`
-
-## Choosing the Right Mode
 
 | | Cloud | Local | Self-Host |
 |---|---|---|---|
@@ -141,3 +12,150 @@ The agent reads transferred sessions at the start of each job run and reseeds th
 | Manual prompt runs | | ✓ | |
 | Recurring scheduling | ✓ | | ✓ |
 | Full data ownership | | ✓ | ✓ |
+
+---
+
+## Cloud App
+
+Sign in at [app.oneglanse.com](https://app.oneglanse.com), create a workspace, add prompts, and review results. No setup required.
+
+---
+
+## Local
+
+Use local mode to run the full stack on your own machine — interactive provider auth, manual prompt runs, all data stored locally.
+
+**Requirements:** Node.js 20+, pnpm 10+, Docker
+
+```bash
+git clone https://github.com/aryamantodkar/oneglanse
+cd oneglanse
+pnpm install
+cp .env.example .env
+```
+
+Open `.env` and set your LLM API key — this is the only value you must provide:
+
+```bash
+# Pick one:
+OPENAI_API_KEY=sk-...
+
+# or to use Claude:
+ANTHROPIC_API_KEY=sk-ant-...
+ANALYSIS_LLM_PROVIDER=claude
+```
+
+Then start:
+
+```bash
+pnpm local
+```
+
+Opens at `http://localhost:3000`. On first run: starts Postgres, ClickHouse, and Redis, runs migrations, and bootstraps the browser runtime. Sign up with email — Google OAuth is optional.
+
+Go to `/providers` to connect your AI accounts, then add prompts and run.
+
+---
+
+## Self-Host
+
+Self-host mode runs the full stack on a VPS with recurring scheduled runs. Provider auth is captured locally and transferred to the VPS — the server itself never opens a browser window.
+
+### Step 1 — Deploy to VPS
+
+On your VPS, clone the repo and start the stack:
+
+```bash
+git clone https://github.com/aryamantodkar/oneglanse
+cd oneglanse
+pnpm install
+cp .env.example .env
+```
+
+Open `.env` and fill in:
+
+```bash
+# Required: LLM key for response analysis
+OPENAI_API_KEY=sk-...          # or ANTHROPIC_API_KEY + ANALYSIS_LLM_PROVIDER=claude
+
+# Required: residential proxy (see below)
+THORDATA_PROXY_API_URL=https://your-thordata-endpoint
+
+# Required: token used to authenticate auth session uploads from your local machine
+AGENT_AUTH_UPLOAD_TOKEN=your-secret-token
+
+# Optional: public URL of your VPS app
+APP_URL=https://your-domain.com
+API_BASE_URL=https://your-domain.com
+```
+
+Then start:
+
+```bash
+pnpm self-host
+```
+
+This starts the app stack and the public Nginx gateway. Default ports:
+
+- App: `3001`
+- Auth upload API: `3333`
+
+Persistent state is stored at `/opt/oneglanse/storage`. Override with `ONEGLANSE_STORAGE_ROOT`.
+
+### Step 2 — Set up a residential proxy
+
+AI providers block datacenter IP addresses. On VPS you must route browser traffic through a residential proxy so requests appear to come from a real user location.
+
+OneGlanse uses **[ThorData](https://thordata.com)** residential proxies. Sign up for a ThorData account and get your rotating proxy API endpoint URL.
+
+Add it to your VPS `.env`:
+
+```bash
+THORDATA_PROXY_API_URL=https://your-thordata-api-endpoint
+```
+
+Before each browser launch, OneGlanse calls this URL, receives a list of available residential proxies, picks one, and routes all browser traffic through it. The proxy is released after the run completes.
+
+### Step 3 — Connect provider accounts
+
+Provider auth requires an interactive browser window — it cannot run on a headless server. You capture sessions on your **local machine** and upload them to the VPS.
+
+**On your local machine**, add these to your local `.env`:
+
+```bash
+ONEGLANSE_VPS_IP=your-vps-ip
+AGENT_AUTH_UPLOAD_TOKEN=your-secret-token   # must match the VPS value
+```
+
+If you already have local sessions saved, upload them:
+
+```bash
+pnpm upload:vps
+```
+
+If you need to capture sessions first:
+
+```bash
+pnpm auth
+```
+
+This opens the local `/providers` page. Connect each provider interactively, then run `pnpm upload:vps` to transfer the sessions to your VPS.
+
+Re-run this whenever a provider session expires.
+
+### Step 4 — Verify
+
+Check that the agent on the VPS is receiving the sessions:
+
+```bash
+curl http://YOUR_VPS_IP:3333/health
+```
+
+Then go to your app URL, add prompts, and start a scheduled run.
+
+### Updates
+
+```bash
+pnpm self-host:app      # Pull and restart app stack only
+pnpm self-host:public   # Pull and restart public gateway only
+```
