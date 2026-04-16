@@ -3,6 +3,7 @@ import { ValidationError } from "@oneglanse/errors";
 import {
 	addWorkspaceToExistingOrg,
 	checkIsFirstWorkspace,
+	checkSlugExistsForUser,
 	createWorkspaceForTenant,
 	deleteUserAccount,
 	getAllWorkspacesForUser,
@@ -33,11 +34,21 @@ export const protectedWorkspaceRoutes = {
 				throw new ValidationError("Please fill all the mandatory fields.");
 			}
 
+			const slugTaken = await checkSlugExistsForUser({ userId, slug });
+			if (slugTaken) {
+				throw new ValidationError(
+					"You already have a workspace with this slug. Please choose a different one.",
+				);
+			}
+
 			const isFirstWorkspace = await checkIsFirstWorkspace({ userId });
+			// Use a unique org slug so different users can track the same brand without
+			// hitting the global uniqueness constraint on better-auth's organization table.
+			const uniqueOrgSlug = `${slug}-${crypto.randomUUID().slice(0, 8)}`;
 			const org = await auth.api.createOrganization({
 				body: {
 					name: organizationName?.trim() || name,
-					slug,
+					slug: uniqueOrgSlug,
 					keepCurrentActiveOrganization: true,
 				},
 				headers,
@@ -79,6 +90,13 @@ export const protectedWorkspaceRoutes = {
 
 			if (!name || !domain || !slug) {
 				throw new ValidationError("Please fill all the mandatory fields.");
+			}
+
+			const slugTaken = await checkSlugExistsForUser({ userId, slug });
+			if (slugTaken) {
+				throw new ValidationError(
+					"You already have a workspace with this slug. Please choose a different one.",
+				);
 			}
 
 			const isFirstWorkspace = await checkIsFirstWorkspace({ userId });

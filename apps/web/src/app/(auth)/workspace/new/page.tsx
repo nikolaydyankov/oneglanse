@@ -71,16 +71,6 @@ export default function NewWorkspace() {
 
 		setLoading(true);
 		try {
-			const { data: uniqueSlug, error: slugError } =
-				await authClient.organization.checkSlug({
-					slug: formData.workspaceSlug,
-				});
-
-			if (slugError || !uniqueSlug) {
-				toast.error("Workspace slug already exists. Please choose another.");
-				return;
-			}
-
 			const response = await createWorkspaceMutation.mutateAsync({
 				organizationName: formData.organizationName.trim(),
 				name: formData.workspaceName.trim(),

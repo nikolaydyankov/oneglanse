@@ -3,6 +3,7 @@ import type { Workspace } from "@oneglanse/db";
 import { ValidationError } from "@oneglanse/errors";
 import type { CreateWorkspaceForTenantArgs } from "@oneglanse/types";
 import { newId } from "@oneglanse/utils";
+import { and, eq, isNull } from "drizzle-orm";
 
 export async function createWorkspaceForTenant(
 	args: CreateWorkspaceForTenantArgs,
@@ -58,6 +59,38 @@ export async function addWorkspaceToExistingOrg(args: {
 	});
 
 	return { workspace };
+}
+
+/**
+ * Returns true if the given user already owns a workspace with this slug.
+ * Used to prevent the same user from creating duplicate brand workspaces,
+ * while allowing different users to track the same brand freely.
+ */
+export async function checkSlugExistsForUser(args: {
+	userId: string;
+	slug: string;
+}): Promise<boolean> {
+	const { userId, slug } = args;
+	const existing = await db
+		.select({ id: schema.workspaces.id })
+		.from(schema.workspaces)
+		.innerJoin(
+			schema.workspaceMembers,
+			and(
+				eq(schema.workspaceMembers.workspaceId, schema.workspaces.id),
+				eq(schema.workspaceMembers.userId, userId),
+				isNull(schema.workspaceMembers.deletedAt),
+			),
+		)
+		.where(
+			and(
+				eq(schema.workspaces.slug, slug),
+				isNull(schema.workspaces.deletedAt),
+			),
+		)
+		.limit(1)
+		.execute();
+	return existing.length > 0;
 }
 
 export async function checkIsFirstWorkspace(args: {
