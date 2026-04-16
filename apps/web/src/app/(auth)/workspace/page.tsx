@@ -77,13 +77,7 @@ export default function WorkspaceGateway() {
 
 	return (
 		<div className="flex min-h-full min-w-0 items-center justify-center bg-stone-50 px-4 py-3 dark:bg-neutral-950 sm:px-6 sm:py-5 xl:px-10 xl:py-8">
-			<div className="ui-stagger w-full max-w-4xl space-y-4 xl:max-w-5xl xl:space-y-5">
-				<div className="pb-1 text-center sm:pb-2 xl:pb-3">
-					<p className="mx-auto max-w-2xl text-sm leading-6 text-gray-600 dark:text-gray-300 xl:max-w-3xl xl:text-[15px] xl:leading-7">
-						Join an existing workspace with a code, or create a new one.
-					</p>
-				</div>
-
+			<div className="ui-stagger w-full max-w-3xl space-y-4 lg:max-w-[50rem] xl:max-w-[54rem] xl:space-y-5">
 				<div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 xl:gap-5">
 					<Card className={cn(formPanelClassName, "flex h-full flex-col")}>
 						<CardHeader className="space-y-1.5 px-5 pt-5 pb-0 sm:px-6 sm:pt-6 xl:px-7 xl:pt-7">
