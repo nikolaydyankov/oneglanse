@@ -178,7 +178,7 @@ export function BrandComparisonChart({
 		return (
 			<Card className="flex min-h-[280px] min-w-0 flex-col p-5">
 				<div>
-					<h1 className="mt-2 text-lg font-semibold leading-none tracking-tight text-gray-900 dark:text-gray-100">
+					<h1 className="mt-2 text-base font-semibold leading-none tracking-tight text-gray-900 sm:text-lg dark:text-gray-100">
 						Brand Comparison
 					</h1>
 					<p className="mt-2 text-xs text-muted-foreground">
@@ -190,7 +190,7 @@ export function BrandComparisonChart({
 						<div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-gray-200/70 bg-stone-100 dark:border-gray-800 dark:bg-neutral-900">
 							<LineChart className="h-5 w-5 text-muted-foreground" />
 						</div>
-						<h3 className="mt-4 text-sm font-semibold text-gray-900 dark:text-gray-100">
+						<h3 className="mt-4 text-[13px] font-semibold text-gray-900 sm:text-sm dark:text-gray-100">
 							Not enough comparison data
 						</h3>
 						<p className="mt-2 text-xs leading-relaxed text-muted-foreground">
@@ -246,7 +246,7 @@ export function BrandComparisonChart({
 		<Card className="min-w-0 p-5">
 			<div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
 				<div className="min-w-0">
-					<h1 className="mt-1 text-lg font-semibold leading-none tracking-tight text-gray-900 dark:text-gray-100">
+					<h1 className="mt-1 text-base font-semibold leading-none tracking-tight text-gray-900 sm:text-lg dark:text-gray-100">
 						Brand Comparison
 					</h1>
 					<p className="mt-2 text-xs text-muted-foreground">

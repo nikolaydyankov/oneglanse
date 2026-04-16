@@ -143,7 +143,7 @@ export function ProviderConnectionsPanel(props: {
 			{title || description ? (
 				<div className="mb-6 max-w-2xl space-y-1.5">
 					{title ? (
-						<h2 className="text-xl font-semibold tracking-[-0.025em] text-gray-900 dark:text-gray-100">
+						<h2 className="text-lg font-semibold tracking-[-0.025em] text-gray-900 sm:text-xl dark:text-gray-100">
 							{title}
 						</h2>
 					) : null}
@@ -227,7 +227,7 @@ export function ProviderConnectionsPanel(props: {
 												<span className="text-[10px] font-medium uppercase tracking-[0.1em] text-gray-400 dark:text-gray-500">
 													Provider
 												</span>
-												<p className="truncate text-base font-semibold tracking-[-0.02em] text-gray-900 dark:text-gray-100">
+												<p className="truncate text-sm font-semibold tracking-[-0.02em] text-gray-900 sm:text-base dark:text-gray-100">
 													{cardTitle}
 												</p>
 											</div>

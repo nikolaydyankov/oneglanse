@@ -45,13 +45,13 @@ export function DashboardSkeleton() {
 						))}
 					</div>
 
-					<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-						<Skeleton className="h-[500px] rounded-2xl" />
-						<Skeleton className="h-[500px] rounded-2xl" />
-						<Skeleton className="h-[500px] rounded-2xl" />
+					<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+						<Skeleton className="h-[280px] rounded-2xl sm:h-[380px] lg:h-[500px]" />
+						<Skeleton className="h-[280px] rounded-2xl sm:h-[380px] lg:h-[500px]" />
+						<Skeleton className="h-[280px] rounded-2xl sm:h-[380px] lg:h-[500px]" />
 					</div>
 
-					<Skeleton className="h-[360px] rounded-2xl" />
+					<Skeleton className="h-[200px] rounded-2xl sm:h-[280px] lg:h-[360px]" />
 				</div>
 			</div>
 		</div>

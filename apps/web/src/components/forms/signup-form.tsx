@@ -25,7 +25,7 @@ import {
 	useForm,
 } from "@oneglanse/ui";
 import { Loader2 } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { z } from "zod";
 
@@ -39,7 +39,6 @@ export function SignupForm({
 	className,
 	...props
 }: React.ComponentProps<"div">) {
-	const router = useRouter();
 	const searchParams = useSearchParams();
 	const [isLoading, setIsLoading] = useState(false);
 	const rawNext = searchParams?.get("next");
@@ -73,13 +72,13 @@ export function SignupForm({
 			email: values.email,
 			password: values.password,
 			name: values.username,
+			callbackURL: postAuthRedirectPath,
 		});
 
 		if (error) {
 			toast.error(error.message ?? "Failed to sign up.");
 		} else {
 			toast.success("Signed up successfully!");
-			router.push(postAuthRedirectPath);
 		}
 
 		setIsLoading(false);

@@ -18,7 +18,7 @@ export function TopSources({
 	return (
 		<Card className="flex h-full min-w-0 flex-col p-5 lg:p-6">
 			<div>
-				<h1 className="mt-2 text-lg font-semibold leading-none tracking-tight text-gray-900 dark:text-gray-100">
+				<h1 className="mt-2 text-base font-semibold leading-none tracking-tight text-gray-900 sm:text-lg dark:text-gray-100">
 					Top Sources
 				</h1>
 				<p className="mt-2 text-xs text-muted-foreground">
@@ -31,7 +31,6 @@ export function TopSources({
 					icon={FileQuestion}
 					title="Source patterns will surface here"
 					description="As soon as prompts produce cited answers, this card shows which publishers keep shaping your brand narrative."
-					className="min-h-[220px]"
 				/>
 			) : (
 				<div className="flex min-w-0 flex-1 flex-col gap-3">

@@ -1,4 +1,5 @@
 import {
+	LOCAL_WATCH_PACKAGES,
 	attachTerminationHandler,
 	buildLocalRuntimeEnv,
 	buildLocalWorkspacePackages,
@@ -10,7 +11,9 @@ import {
 	repoRoot,
 	runCommand,
 	spawnCommand,
+	spawnLocalWorkspacePackageWatchers,
 	terminateLocalProcesses,
+	terminateLocalWorkspacePackageWatchers,
 	waitForChildExit,
 	waitForHttp,
 } from "./lib/runtime.mjs";
@@ -36,6 +39,9 @@ async function main() {
 	]);
 	await runCommand("pnpm", ["db:migrate"], { env: localEnv });
 	await terminateLocalProcesses([repoRoot, "@oneglanse/agent", "dev"]);
+	await terminateLocalWorkspacePackageWatchers();
+
+	const packageWatchers = spawnLocalWorkspacePackageWatchers(localEnv);
 
 	const webChild = spawnCommand(
 		"pnpm",
@@ -62,6 +68,9 @@ async function main() {
 		},
 	);
 
+	const stopPackageWatchers = packageWatchers.map((child) =>
+		attachTerminationHandler(child),
+	);
 	const stopWeb = attachTerminationHandler(webChild);
 	const stopAgent = attachTerminationHandler(agentChild);
 
@@ -69,12 +78,21 @@ async function main() {
 		await waitForHttp(localAppUrl);
 		openBrowser(localAppUrl);
 	} catch (error) {
+		for (const stopWatcher of stopPackageWatchers) {
+			stopWatcher();
+		}
 		stopWeb();
 		stopAgent();
 		throw error;
 	}
 
 	await Promise.all([
+		...packageWatchers.map((child, index) =>
+			waitForChildExit(
+				child,
+				`Workspace package watch ${LOCAL_WATCH_PACKAGES[index]}`,
+			),
+		),
 		waitForChildExit(webChild, "Web dev"),
 		waitForChildExit(agentChild, "Agent dev"),
 	]);

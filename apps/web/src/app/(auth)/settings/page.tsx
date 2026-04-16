@@ -13,6 +13,7 @@ import {
 	formSecondaryButtonClassName,
 } from "@/components/forms/auth-form-chrome";
 import { authClient } from "@/lib/auth/auth-client";
+import { signOutAndRedirect } from "@/lib/auth/logout";
 import { downloadCsv, downloadJson } from "@/lib/export/download";
 import { useSafeSearchParams } from "@/lib/navigation/use-safe-search-params";
 import { api } from "@/trpc/react";
@@ -82,9 +83,8 @@ export default function SettingsPage() {
 		setIsDeletingAccount(true);
 		try {
 			await deleteAccountMutation.mutateAsync();
-			await authClient.signOut();
+			await signOutAndRedirect("/login");
 			toast.success("Your account has been deleted.");
-			router.push("/login");
 		} catch (err) {
 			console.error(err);
 			toast.error(
@@ -252,7 +252,7 @@ export default function SettingsPage() {
 			{workspaceId ? (
 				<section>
 					<div className="mb-4 flex items-center gap-2">
-						<h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+						<h2 className="text-base font-semibold text-gray-900 sm:text-lg dark:text-gray-100">
 							Export Data
 						</h2>
 					</div>
@@ -311,7 +311,7 @@ export default function SettingsPage() {
 			{/* Danger Zone */}
 			<section>
 				<div className="mb-4 flex items-center gap-2">
-					<h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+					<h2 className="text-base font-semibold text-gray-900 sm:text-lg dark:text-gray-100">
 						Account
 					</h2>
 				</div>

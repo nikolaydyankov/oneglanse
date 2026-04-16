@@ -114,6 +114,7 @@ export function CreateWorkspaceDialog({
 					</Label>
 					<Input
 						id="ws-name"
+						name="workspaceName"
 						placeholder="e.g. Pipedrive"
 						value={formData.name}
 						onChange={(e) => handleNameChange(e.target.value)}
@@ -129,6 +130,8 @@ export function CreateWorkspaceDialog({
 					</Label>
 					<Input
 						id="ws-slug"
+						name="workspaceSlug"
+						autoComplete="off"
 						placeholder="my-workspace"
 						value={formData.slug}
 						onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
@@ -141,6 +144,9 @@ export function CreateWorkspaceDialog({
 					</Label>
 					<Input
 						id="ws-domain"
+						name="workspaceDomain"
+						autoComplete="url"
+						inputMode="url"
 						placeholder="e.g. pipedrive.com"
 						value={formData.domain}
 						onChange={(e) =>

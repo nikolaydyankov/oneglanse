@@ -127,7 +127,7 @@ function ManualRunView({
 					{mode === "local" ? "Run prompts" : "Manual run"}
 				</div>
 				<div className="space-y-1.5">
-					<h2 className="text-lg font-semibold tracking-[-0.02em] text-gray-900 dark:text-gray-100">
+					<h2 className="text-base font-semibold tracking-[-0.02em] text-gray-900 sm:text-lg dark:text-gray-100">
 						{mode === "local" ? "Run prompts now" : "Run prompts now"}
 					</h2>
 					<p className="text-sm leading-6 text-gray-500 dark:text-gray-400">
@@ -175,7 +175,7 @@ function ScheduleIntro({
 }) {
 	return (
 		<div className="space-y-1">
-			<h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+			<h2 className="text-lg font-semibold text-gray-900 sm:text-xl dark:text-gray-100">
 				{mode === "local" ? "Run prompts" : "Schedule overview"}
 			</h2>
 			<p className="text-sm text-gray-500 dark:text-gray-400">
@@ -205,7 +205,7 @@ function TimingSummary({
 						Next run
 					</span>
 				</div>
-				<p className="text-base font-semibold text-gray-900 dark:text-gray-100">
+				<p className="text-sm font-semibold text-gray-900 sm:text-base dark:text-gray-100">
 					{currentSchedule && nextRun
 						? formatRelativeTime(nextRun)
 						: "Not scheduled"}
@@ -219,7 +219,7 @@ function TimingSummary({
 						Last run
 					</span>
 				</div>
-				<p className="text-base font-semibold text-gray-900 dark:text-gray-100">
+				<p className="text-sm font-semibold text-gray-900 sm:text-base dark:text-gray-100">
 					{lastPromptRun ? formatAbsoluteTime(lastPromptRun) : "Never"}
 				</p>
 			</div>
@@ -550,7 +550,6 @@ export default function SchedulePageClient({
 					onSave={handleSave}
 				/>
 			)}
-
 		</div>
 	);
 }

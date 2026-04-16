@@ -1,8 +1,6 @@
 "use client";
 
 import {
-	formChipClassName,
-	formFieldClassName,
 	formHintClassName,
 	formLabelClassName,
 	formPrimaryButtonClassName,
@@ -15,26 +13,19 @@ import {
 	Button,
 	Card,
 	CardContent,
-	CardDescription,
 	CardHeader,
-	CardTitle,
 	Input,
 	Label,
 	toast,
 } from "@oneglanse/ui";
-import { cn } from "@oneglanse/utils";
+import { cn, getFaviconUrls } from "@oneglanse/utils";
 import { Loader2, Plus, Sparkles, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState } from "react";
 
 const SUGGESTED_PROMPTS = [
 	"What are the best alternatives to {brand} for growing teams?",
-	"Which tools are most recommended for sales pipeline management?",
-	"What are the top platforms for customer support automation in 2026?",
 	"Compare {brand} with top competitors for pricing and value.",
-	"Which software is best for CRM + marketing automation together?",
-	"What are the most trusted solutions for enterprise workflow automation?",
-	"What tool is easiest to set up for small businesses in this category?",
 	"Which brands are most frequently cited for reliability and support?",
 ];
 
@@ -45,6 +36,7 @@ export default function FirstWorkspaceOnboardingPage() {
 
 	const [prompts, setPrompts] = useState<string[]>([]);
 	const [inputValue, setInputValue] = useState("");
+	const [faviconError, setFaviconError] = useState(false);
 	const inputRef = useRef<HTMLInputElement>(null);
 
 	const workspaceQuery = api.workspace.getById.useQuery(
@@ -56,6 +48,11 @@ export default function FirstWorkspaceOnboardingPage() {
 
 	const brandName = workspaceQuery.data?.name ?? "your brand";
 	const brandDomain = workspaceQuery.data?.domain ?? "";
+
+	const faviconUrl = useMemo(() => {
+		if (!brandDomain) return null;
+		return getFaviconUrls(brandDomain)[0] ?? null;
+	}, [brandDomain]);
 
 	const suggestedPrompts = useMemo(
 		() =>
@@ -120,96 +117,100 @@ export default function FirstWorkspaceOnboardingPage() {
 	const isPending = storePrompts.isPending || runAgent.isPending;
 
 	return (
-		<div className="ui-page-enter min-h-full bg-stone-50 px-4 py-8 dark:bg-neutral-950 sm:px-6 sm:py-10">
-			<div className="ui-stagger mx-auto w-full min-w-0 max-w-2xl">
+		<div className="web-centered-page">
+			<div className="ui-stagger w-full min-w-0 max-w-md xl:max-w-[34rem] 2xl:max-w-[36rem]">
 				<Card className={formSurfaceClassName}>
-					<CardHeader className="border-b border-gray-100 bg-white pb-6 dark:border-gray-900 dark:bg-neutral-950">
-						<div className="mb-2 inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-stone-100 dark:bg-gray-900">
-							<Sparkles className="h-5 w-5 text-gray-700 dark:text-gray-200" />
+					{/* Header: favicon left, title + subtitle stacked right */}
+					<CardHeader className="flex items-center gap-3 px-4 py-5 sm:px-5 sm:py-4.5 xl:gap-4 xl:px-6 xl:py-5.5">
+						<div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-stone-100 dark:bg-gray-900 xl:h-10 xl:w-10 xl:rounded-[14px]">
+							{faviconUrl && !faviconError ? (
+								<img
+									src={faviconUrl}
+									onError={() => setFaviconError(true)}
+									alt={brandName}
+									className="h-4.5 w-4.5 rounded-sm object-contain xl:h-5.5 xl:w-5.5"
+								/>
+							) : (
+								<Sparkles className="h-4 w-4 text-gray-700 dark:text-gray-200 xl:h-5 xl:w-5" />
+							)}
 						</div>
-						<CardTitle className="text-[1.85rem] tracking-[-0.05em]">
-							Set up your first GEO visibility run
-						</CardTitle>
-						<CardDescription className="max-w-xl text-sm leading-6">
-							Add prompts that matter for buyers in your category. We'll run and
-							analyze them now and take you straight to your dashboard.
-						</CardDescription>
-						<p className={cn(formHintClassName, "mt-2")}>
-							Brand:{" "}
-							<span className="font-medium text-gray-900 dark:text-gray-100">
+
+						<div className="min-w-0 flex-1 flex flex-col">
+							<p className="text-[1.4rem] font-medium leading-tight tracking-[-0.02em] text-gray-950 dark:text-gray-50 xl:text-[1.75rem]">
+								Start tracking your brand in AI
+							</p>
+							<p className="mt-0.5 truncate text-[0.75rem] leading-tight text-gray-400 dark:text-gray-500 xl:text-[0.9rem]">
 								{brandName}
-							</span>
-							{brandDomain ? ` (${brandDomain})` : ""}
-						</p>
+								{brandDomain ? ` · ${brandDomain}` : ""}
+							</p>
+						</div>
 					</CardHeader>
 
-					<CardContent className="space-y-6 bg-white px-5 py-5 sm:px-6 sm:py-6 dark:bg-neutral-950">
-						{/* Input row */}
-						<div className="space-y-2">
+					{/* Body — no top padding, tight even spacing */}
+					<CardContent className="space-y-3.5 px-4 pb-4 pt-0 sm:space-y-4 sm:px-5 sm:pb-5 xl:space-y-5 xl:px-6 xl:pb-6">
+						{/* Prompt input */}
+						<div className="space-y-1.5 xl:space-y-2">
 							<Label className={formLabelClassName}>Add a prompt</Label>
-							<div className="flex gap-2">
+							<div className="flex gap-2 xl:gap-2.5">
 								<Input
 									ref={inputRef}
 									value={inputValue}
 									onChange={(e) => setInputValue(e.target.value)}
 									onKeyDown={handleKeyDown}
-									placeholder="e.g. What are the best tools for sales pipeline management?"
-									className={cn(formFieldClassName, "flex-1")}
+									placeholder="e.g. What's the best CRM for small teams?"
 									disabled={isPending}
+									className="h-9 flex-1 text-[12px] xl:h-10 xl:text-[14px]"
 								/>
-								<Button
+								<button
 									type="button"
 									onClick={() => addPrompt(inputValue)}
 									disabled={!inputValue.trim() || isPending}
-									className={cn(
-										formSecondaryButtonClassName,
-										"w-11 shrink-0 !px-0 justify-center",
-									)}
+									className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 transition hover:bg-stone-50 hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-100 xl:h-10 xl:w-10"
 								>
-									<Plus className="h-4 w-4" />
-								</Button>
+									<Plus className="h-3.5 w-3.5 xl:h-4 xl:w-4" />
+								</button>
 							</div>
 							<p className={formHintClassName}>
-								Press Enter or click + to add. Aim for 6–10 prompts.
+								Press Enter or + to add. Aim for 6–10 prompts.
 							</p>
 						</div>
 
-						{/* Added prompts */}
+						{/* Added prompts — chips */}
 						{prompts.length > 0 && (
-							<div className="space-y-2">
+							<div className="space-y-1.5 xl:space-y-2">
 								<Label className={formLabelClassName}>
 									Your prompts{" "}
 									<span className="font-normal normal-case tracking-normal text-gray-400 dark:text-gray-500">
 										({prompts.length})
 									</span>
 								</Label>
-								<div className="flex flex-wrap gap-2">
+								<div className="flex flex-wrap gap-1.5 xl:gap-2">
 									{prompts.map((prompt, index) => (
-										<span
+										<div
 											key={`${index}-${prompt}`}
-											className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-gray-200/80 bg-stone-50 py-1.5 pl-3.5 pr-2 text-xs text-gray-800 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200"
+											className="flex items-center gap-1 rounded-full border border-gray-200/80 bg-stone-50 py-1 pl-2.5 pr-1.5 dark:border-gray-800 dark:bg-gray-900 xl:gap-1.5 xl:py-1.5 xl:pl-3 xl:pr-2"
 										>
-											<span className="min-w-0 break-words leading-4 [overflow-wrap:anywhere]">
+											<span className="max-w-[160px] truncate text-[10.5px] text-gray-700 dark:text-gray-300 sm:max-w-[200px] xl:max-w-[260px] xl:text-[12px]">
 												{prompt}
 											</span>
 											<button
 												type="button"
 												onClick={() => removePrompt(index)}
 												disabled={isPending}
-												className="shrink-0 rounded-full p-0.5 text-gray-400 transition-colors hover:bg-gray-200/60 hover:text-gray-700 dark:text-gray-500 dark:hover:bg-gray-700/60 dark:hover:text-gray-200"
+												className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-200/70 hover:text-gray-700 dark:text-gray-500 dark:hover:bg-gray-700/60 dark:hover:text-gray-200 xl:h-5 xl:w-5"
 											>
-												<X className="h-3 w-3" />
+												<X className="h-2.5 w-2.5 xl:h-3 xl:w-3" />
 											</button>
-										</span>
+										</div>
 									))}
 								</div>
 							</div>
 						)}
 
-						{/* Suggested prompts */}
-						<div className="space-y-2">
+						{/* Suggested prompts — 3 cards, spacious, stand out */}
+						<div className="space-y-2 xl:space-y-2.5">
 							<Label className={formLabelClassName}>Suggested prompts</Label>
-							<div className="flex flex-wrap gap-2">
+							<div className="space-y-2 xl:space-y-2.5">
 								{suggestedPrompts.map((prompt) => {
 									const alreadyAdded = prompts.some(
 										(p) => p.trim() === prompt.trim(),
@@ -221,11 +222,20 @@ export default function FirstWorkspaceOnboardingPage() {
 											onClick={() => addPrompt(prompt)}
 											disabled={alreadyAdded || isPending}
 											className={cn(
-												formChipClassName,
-												alreadyAdded && "cursor-default opacity-40 pointer-events-none",
+												"group w-full rounded-2xl border border-gray-200/80 bg-white px-4 py-3 text-left shadow-[0_2px_8px_-4px_rgba(0,0,0,0.06)] transition duration-150 xl:px-5 xl:py-4",
+												"hover:border-gray-300 hover:shadow-[0_4px_14px_-6px_rgba(0,0,0,0.1)]",
+												"dark:border-gray-800 dark:bg-neutral-950 dark:shadow-[0_2px_8px_-4px_rgba(0,0,0,0.3)]",
+												"dark:hover:border-gray-700 dark:hover:shadow-[0_4px_14px_-6px_rgba(0,0,0,0.4)]",
+												alreadyAdded &&
+													"pointer-events-none cursor-default opacity-40",
 											)}
 										>
-											+ {prompt}
+											<div className="flex items-start gap-2.5 xl:gap-3">
+												<Plus className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gray-400 transition group-hover:text-gray-600 dark:text-gray-500 dark:group-hover:text-gray-300 xl:h-4 xl:w-4" />
+												<span className="text-[11.5px] leading-5 text-gray-700 dark:text-gray-300 xl:text-[13px] xl:leading-6">
+													{prompt}
+												</span>
+											</div>
 										</button>
 									);
 								})}
@@ -233,30 +243,33 @@ export default function FirstWorkspaceOnboardingPage() {
 						</div>
 
 						{/* Actions */}
-						<div className="flex flex-col gap-3 pt-1 sm:flex-row sm:items-center sm:justify-end">
-							<Button
-								variant="outline"
-								onClick={() =>
-									router.replace(`/dashboard?workspace=${workspaceId}`)
-								}
-								disabled={isPending}
-								className={cn(formSecondaryButtonClassName, "w-full sm:w-auto")}
-							>
-								Skip for now
-							</Button>
+						<div className="flex flex-col gap-2 xl:gap-2.5">
 							<Button
 								onClick={handleStart}
 								disabled={prompts.length === 0 || isPending}
 								className={cn(
 									formPrimaryButtonClassName,
-									"w-full sm:w-auto sm:min-w-[220px]",
+									"min-w-[9rem] sm:min-w-[10rem] xl:min-w-[11rem]",
 								)}
 							>
 								{isPending ? (
 									<Loader2 className="h-4 w-4 animate-spin" />
 								) : (
-									"Save Prompts & Run Analysis"
+									"Save & Run Analysis"
 								)}
+							</Button>
+							<Button
+								variant="ghost"
+								onClick={() =>
+									router.replace(`/dashboard?workspace=${workspaceId}`)
+								}
+								disabled={isPending}
+								className={cn(
+									formSecondaryButtonClassName,
+									"h-auto border-transparent px-0 py-0 text-[11px] text-gray-500 hover:bg-transparent hover:text-gray-700 dark:text-gray-400 dark:hover:bg-transparent dark:hover:text-gray-200",
+								)}
+							>
+								Skip for now
 							</Button>
 						</div>
 					</CardContent>

@@ -1,6 +1,10 @@
 import type { LucideIcon } from "lucide-react";
 
-import { EmptyStatePanel } from "../empty-state.js";
+import {
+	DASHBOARD_EMPTY_STATE_HEIGHT_CLASS,
+	DASHBOARD_EMPTY_STATE_WIDTH_CLASS,
+	EmptyStatePanel,
+} from "../empty-state.js";
 
 export function DashboardEmptyState({
 	icon: Icon,
@@ -22,7 +26,7 @@ export function DashboardEmptyState({
 			title={title}
 			description={description}
 			className={className}
-			contentClassName="max-w-sm px-6 py-7"
+			contentClassName={`${DASHBOARD_EMPTY_STATE_WIDTH_CLASS} ${DASHBOARD_EMPTY_STATE_HEIGHT_CLASS} px-4 py-5 sm:px-5 sm:py-5.5 xl:px-6 xl:py-6`}
 		/>
 	);
 }

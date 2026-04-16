@@ -2,6 +2,7 @@
 
 import { formToolbarButtonClassName } from "@/components/forms/auth-form-chrome";
 import { authClient } from "@/lib/auth/auth-client";
+import { signOutAndRedirect } from "@/lib/auth/logout";
 import { useSafeSearchParams } from "@/lib/navigation/use-safe-search-params";
 import { api } from "@/trpc/react";
 import type { Workspace } from "@oneglanse/db";
@@ -50,7 +51,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CreateWorkspaceDialog } from "./dialogs/create-workspace-dialog";
 import { JoinWorkspaceDialog } from "./dialogs/join-workspace-dialog";
 
@@ -71,6 +72,9 @@ export function AppSidebar({
 	const [showCreateWorkspaceDialog, setShowCreateWorkspaceDialog] =
 		useState(false);
 	const [showJoinWorkspaceDialog, setShowJoinWorkspaceDialog] = useState(false);
+	const [failedWorkspaceFavicon, setFailedWorkspaceFavicon] = useState<
+		string | null
+	>(null);
 	const router = useRouter();
 	const pathname = usePathname();
 	const searchParams = useSafeSearchParams();
@@ -96,14 +100,13 @@ export function AppSidebar({
 		return workspace;
 	}, [workspaceIdFromUrl, allWorkspaces, workspace]);
 
+	const activeWorkspaceDomain = activeWorkspace?.domain ?? "";
 	const activeWorkspaceFavicon = useMemo(() => {
 		return (
-			getFaviconUrls(
-				activeWorkspace?.domain ?? "",
-				activeWorkspace?.name ?? "",
-			)[0] ?? ""
+			getFaviconUrls(activeWorkspaceDomain, activeWorkspace?.name ?? "")[0] ??
+			""
 		);
-	}, [activeWorkspace?.domain, activeWorkspace?.name]);
+	}, [activeWorkspaceDomain, activeWorkspace?.name]);
 
 	const generalItems = [
 		{
@@ -176,15 +179,13 @@ export function AppSidebar({
 	const handleLogout = async () => {
 		setIsLoading(true);
 		try {
-			await authClient.signOut();
+			await signOutAndRedirect("/login");
 			toast.success("Signed out successfully!");
-			router.refresh();
-			router.push("/login");
 		} catch (err) {
 			console.error(err);
 			toast.error("Failed to sign out!");
+			setIsLoading(false);
 		}
-		setIsLoading(false);
 	};
 
 	return (
@@ -202,11 +203,19 @@ export function AppSidebar({
 										)}
 									>
 										<div className="flex items-center gap-2 min-w-0">
-											<img
-												src={activeWorkspaceFavicon}
-												alt="Favicon"
-												className="w-4 h-4 rounded-sm shrink-0"
-											/>
+											{activeWorkspaceFavicon &&
+											activeWorkspaceFavicon !== failedWorkspaceFavicon ? (
+												<img
+													src={activeWorkspaceFavicon}
+													alt=""
+													className="h-4 w-4 shrink-0 rounded-sm"
+													onError={() =>
+														setFailedWorkspaceFavicon(activeWorkspaceFavicon)
+													}
+												/>
+											) : (
+												<LayoutGrid className="h-4 w-4 shrink-0 text-gray-500" />
+											)}
 											<div className="flex flex-col min-w-0">
 												<span className="text-sm font-medium truncate">
 													{activeWorkspace?.name ?? "Select Workspace"}

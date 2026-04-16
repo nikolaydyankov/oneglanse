@@ -62,7 +62,7 @@ export function PromptResponsesPreview({
 	return (
 		<section aria-label="Prompt responses preview" className="space-y-5">
 			<div className="space-y-1.5">
-				<h2 className="text-lg font-medium tracking-[-0.025em] text-gray-950 dark:text-gray-50">
+				<h2 className="text-base font-medium tracking-[-0.025em] text-gray-950 sm:text-lg dark:text-gray-50">
 					{title}
 				</h2>
 				<p className="max-w-2xl text-sm leading-6 text-muted-foreground">

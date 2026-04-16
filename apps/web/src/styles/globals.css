@@ -198,11 +198,11 @@
 	}
 
 	.web-page-wide-inner {
-		@apply mx-auto w-full min-w-0 max-w-[1380px] px-3 pt-3 pb-7 sm:px-6 sm:pt-5 sm:pb-10 lg:px-8;
+		@apply mx-auto w-full min-w-0 max-w-[1080px] px-4 pt-4 pb-8 sm:px-7 sm:pt-6 sm:pb-10 lg:px-10;
 	}
 
 	.web-page-panel {
-		@apply mx-auto min-h-full w-full min-w-0 max-w-[1100px] space-y-3 px-3 pt-3 pb-7 sm:px-6 sm:pt-5 sm:pb-10;
+		@apply mx-auto min-h-full w-full min-w-0 max-w-[880px] space-y-3 px-4 pt-4 pb-8 sm:space-y-3.5 sm:px-7 sm:pt-6 sm:pb-10 lg:space-y-4 lg:px-10 lg:pt-7 lg:pb-12;
 	}
 
 	.web-page-panel > * {
@@ -211,19 +211,19 @@
 	}
 
 	.web-centered-page {
-		@apply flex min-h-full min-w-0 items-center justify-center overflow-x-hidden bg-stone-50 px-4 pt-4 pb-8 dark:bg-neutral-950 sm:px-6 sm:pt-5 sm:pb-10;
+		@apply flex min-h-full min-w-0 items-center justify-center overflow-x-hidden bg-stone-50 px-4 pt-5 pb-9 dark:bg-neutral-950 sm:px-8 sm:pt-7 sm:pb-11 lg:px-10;
 	}
 
 	.web-centered-state {
-		@apply flex h-full min-h-0 w-full min-w-0 flex-1 items-center justify-center overflow-x-hidden px-3 py-3 sm:px-6 sm:py-5;
+		@apply flex h-full min-h-0 w-full min-w-0 flex-1 items-center justify-center overflow-x-hidden px-4 py-4 sm:px-8 sm:py-6 lg:px-10;
 	}
 
 	.web-empty-state {
-		@apply mx-auto flex max-h-[min(100%,calc(100dvh-8.5rem))] w-full max-w-md flex-col items-center justify-center overflow-y-auto rounded-[24px] border border-gray-100/80 bg-white px-4 py-5 text-center shadow-[0_20px_60px_-32px_rgba(15,23,42,0.18)] dark:border-gray-800 dark:bg-neutral-950 dark:shadow-[0_20px_60px_-32px_rgba(0,0,0,0.55)] sm:px-6 sm:py-6;
+		@apply mx-auto flex min-h-[228px] w-full max-w-[16.5rem] flex-col items-center justify-center rounded-[22px] border border-gray-100/80 bg-white px-4 py-5 text-center shadow-[0_20px_60px_-32px_rgba(15,23,42,0.18)] dark:border-gray-800 dark:bg-neutral-950 dark:shadow-[0_20px_60px_-32px_rgba(0,0,0,0.55)] sm:min-h-[240px] sm:max-w-[17.5rem] sm:px-5 sm:py-5.5 xl:min-h-[260px] xl:max-w-[19rem] xl:rounded-[24px] xl:px-6 xl:py-6;
 	}
 
 	.web-empty-state-icon {
-		@apply mb-4 flex h-12 w-12 items-center justify-center rounded-[24px] border border-gray-200/70 bg-stone-100 text-gray-400 dark:border-gray-800 dark:bg-neutral-900 dark:text-gray-500;
+		@apply hidden;
 	}
 
 	.web-touch-scroll {

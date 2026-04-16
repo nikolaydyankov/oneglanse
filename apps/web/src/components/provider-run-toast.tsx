@@ -72,7 +72,7 @@ function showProviderToast(args: {
 	promptNumber?: number;
 	totalPrompts?: number;
 }) {
-	toast.dismiss();
+	toast.dismiss(PROVIDER_RUN_TOAST_ID);
 	toast.custom(
 		() => (
 			<ProviderRunToastCard
@@ -104,6 +104,18 @@ export function useProviderRunToast(args: {
 }) {
 	const { active, workspaceId, jobId, response } = args;
 	const completionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const latestParsedRef = useRef<{
+		updateId: number;
+		providers: Record<string, ProviderState>;
+		results: Record<string, number>;
+		totalPrompts?: number;
+	}>({
+		updateId: 0,
+		providers: {},
+		results: {},
+		totalPrompts: undefined,
+	});
+	const previousProviderStatesRef = useRef<Record<string, ProviderState>>({});
 	const displayRef = useRef<{
 		provider: Provider;
 		phase: DisplayPhase;
@@ -119,6 +131,10 @@ export function useProviderRunToast(args: {
 			totalPrompts: data?.stats?.totalPrompts,
 		};
 	}, [response]);
+
+	useEffect(() => {
+		latestParsedRef.current = parsed;
+	}, [parsed]);
 
 	useEffect(() => {
 		return () => {
@@ -142,28 +158,37 @@ export function useProviderRunToast(args: {
 		}
 
 		const providerStates = parsed.providers;
-		const { results, totalPrompts } = parsed;
+		const previousStates = previousProviderStatesRef.current;
 		const runningProviders = PROVIDER_LIST.filter(
 			(provider) => providerStates[provider] === "running",
 		);
 		const currentDisplay = displayRef.current;
+		const transitionedProvider = PROVIDER_LIST.find((provider) => {
+			const previousState = previousStates[provider];
+			const nextState = providerStates[provider];
 
-		if (
-			currentDisplay?.phase === "running" &&
-			(providerStates[currentDisplay.provider] === "completed" ||
-				providerStates[currentDisplay.provider] === "failed" ||
-				providerStates[currentDisplay.provider] === "stopped")
-		) {
+			return (
+				previousState === "running" &&
+				(nextState === "completed" ||
+					nextState === "failed" ||
+					nextState === "stopped")
+			);
+		});
+
+		previousProviderStatesRef.current = providerStates;
+
+		if (transitionedProvider) {
 			const nextPhase =
-				providerStates[currentDisplay.provider] === "completed"
+				providerStates[transitionedProvider] === "completed"
 					? "completed"
-					: providerStates[currentDisplay.provider] === "stopped"
+					: providerStates[transitionedProvider] === "stopped"
 						? "stopped"
 						: "failed";
-			displayRef.current = { provider: currentDisplay.provider, phase: nextPhase };
+
+			displayRef.current = { provider: transitionedProvider, phase: nextPhase };
 			if (jobId) {
 				showProviderToast({
-					provider: currentDisplay.provider,
+					provider: transitionedProvider,
 					phase: nextPhase,
 					workspaceId,
 					jobId,
@@ -173,23 +198,27 @@ export function useProviderRunToast(args: {
 			if (completionTimerRef.current) {
 				clearTimeout(completionTimerRef.current);
 			}
-			const handoffDelay = nextPhase === "stopped" ? STOPPED_HANDOFF_DELAY_MS : COMPLETION_TOAST_DURATION_MS;
+			const handoffDelay =
+				nextPhase === "stopped"
+					? STOPPED_HANDOFF_DELAY_MS
+					: COMPLETION_TOAST_DURATION_MS;
 			completionTimerRef.current = setTimeout(() => {
 				completionTimerRef.current = null;
+				const latest = latestParsedRef.current;
 				const nextRunningProvider = PROVIDER_LIST.find(
-					(provider) => providerStates[provider] === "running",
+					(provider) => latest.providers[provider] === "running",
 				);
 				if (nextRunningProvider) {
-					const promptNumber = (results[nextRunningProvider] ?? 0) + 1;
-					displayRef.current = { provider: nextRunningProvider, phase: "running", promptNumber };
+					displayRef.current = {
+						provider: nextRunningProvider,
+						phase: "running",
+					};
 					if (jobId) {
 						showProviderToast({
 							provider: nextRunningProvider,
 							phase: "running",
 							workspaceId,
 							jobId,
-							promptNumber,
-							totalPrompts,
 						});
 					}
 					return;
@@ -211,15 +240,20 @@ export function useProviderRunToast(args: {
 
 		const nextRunningProvider = runningProviders[0];
 		if (!nextRunningProvider) {
+			if (
+				parsed.updateId > 0 &&
+				parsed.providers &&
+				Object.keys(parsed.providers).length > 0
+			) {
+				displayRef.current = null;
+				toast.dismiss(PROVIDER_RUN_TOAST_ID);
+			}
 			return;
 		}
 
-		const promptNumber = (results[nextRunningProvider] ?? 0) + 1;
-
 		if (
 			currentDisplay?.provider === nextRunningProvider &&
-			currentDisplay.phase === "running" &&
-			currentDisplay.promptNumber === promptNumber
+			currentDisplay.phase === "running"
 		) {
 			return;
 		}
@@ -229,16 +263,14 @@ export function useProviderRunToast(args: {
 			completionTimerRef.current = null;
 		}
 
-		displayRef.current = { provider: nextRunningProvider, phase: "running", promptNumber };
+		displayRef.current = { provider: nextRunningProvider, phase: "running" };
 		if (jobId) {
 			showProviderToast({
 				provider: nextRunningProvider,
 				phase: "running",
 				workspaceId,
 				jobId,
-				promptNumber,
-				totalPrompts,
 			});
 		}
-	}, [active, jobId, parsed.providers, parsed.results, parsed.totalPrompts, workspaceId]);
+	}, [active, jobId, parsed, workspaceId]);
 }

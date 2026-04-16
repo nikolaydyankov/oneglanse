@@ -192,7 +192,7 @@ export default function SourcesPage(): React.JSX.Element {
 							<Skeleton key={key} className="h-28 rounded-2xl" />
 						))}
 					</div>
-					<Skeleton className="h-[480px] rounded-2xl" />
+					<Skeleton className="h-[280px] rounded-2xl sm:h-[380px] lg:h-[480px]" />
 				</div>
 			</div>
 		);

@@ -2,9 +2,9 @@
 "use client";
 
 import { AppSidebar } from "@/components/app-sidebar";
-import { ProviderConnectionsPanel } from "@/components/provider-connections-panel";
 import { formToolbarButtonClassName } from "@/components/forms/auth-form-chrome";
-import { authClient } from "@/lib/auth/auth-client";
+import { ProviderConnectionsPanel } from "@/components/provider-connections-panel";
+import { signOutAndRedirect } from "@/lib/auth/logout";
 import { useSafeSearchParams } from "@/lib/navigation/use-safe-search-params";
 import { useProviderConnections } from "@/lib/provider-connections/client";
 import type { ProviderConnectionsState } from "@/lib/provider-connections/types";
@@ -27,13 +27,10 @@ import {
 import { cn } from "@oneglanse/utils";
 import { ChevronUp, Loader2, User2 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { WorkspaceProvider } from "./workspace-context";
 
-function getPageHeader(
-	pathname: string | null,
-	appMode: AppMode,
-): string | null {
+function getPageHeader(pathname: string | null): string | null {
 	if (!pathname) return null;
 
 	if (pathname.startsWith("/dashboard")) {
@@ -84,14 +81,12 @@ function UserMenu({
 	const handleLogout = async () => {
 		setIsLoading(true);
 		try {
-			await authClient.signOut();
+			await signOutAndRedirect("/login");
 			toast.success("Signed out successfully!");
-			router.refresh();
-			router.push("/login");
 		} catch {
 			toast.error("Failed to sign out!");
+			setIsLoading(false);
 		}
-		setIsLoading(false);
 	};
 
 	return (
@@ -158,7 +153,6 @@ export default function LayoutContent({
 	const pathname = usePathname();
 	const searchParams = useSafeSearchParams();
 	const isOnboardingFlow = pathname?.startsWith("/onboarding");
-	const shownJobsRef = useRef<Set<string>>(new Set());
 
 	const workspaceIdFromUrl = searchParams.get("workspace") ?? "";
 
@@ -182,9 +176,8 @@ export default function LayoutContent({
 	const canLaunchProvidersLocally = isInteractiveAuthAllowedInMode(appMode);
 	const isProvidersPage = pathname === "/providers";
 	const isWorkspaceSetupPage = pathname?.startsWith("/workspace") ?? false;
-	const isWorkspaceGatewayPage = pathname === "/workspace";
 	const isPeoplePage = pathname?.startsWith("/people") ?? false;
-	const pageHeader = getPageHeader(pathname, appMode);
+	const pageHeader = getPageHeader(pathname);
 	const providersWorkspaceId =
 		workspaceIdFromUrl || resolvedWorkspace?.id || "";
 	const providersHref = providersWorkspaceId
@@ -217,12 +210,6 @@ export default function LayoutContent({
 	]);
 
 	useEffect(() => {
-		if (resolvedWorkspace && isWorkspaceGatewayPage) {
-			router.replace(`/dashboard?workspace=${resolvedWorkspace.id}`);
-		}
-	}, [isWorkspaceGatewayPage, resolvedWorkspace, router]);
-
-	useEffect(() => {
 		if (
 			!resolvedWorkspace &&
 			!isResolvingWorkspaceFromUrl &&
@@ -241,10 +228,6 @@ export default function LayoutContent({
 		router,
 	]);
 
-	useEffect(() => {
-		shownJobsRef.current.clear();
-	});
-
 	if (shouldShowConnectionGate) {
 		return (
 			<main className="mx-auto flex min-h-svh w-full max-w-6xl flex-col px-4 py-10 sm:px-6 sm:py-12 lg:px-8">
@@ -252,7 +235,7 @@ export default function LayoutContent({
 					<UserMenu userName={userName} userEmail={userEmail} />
 				</div>
 				<div className="mb-10 max-w-3xl">
-					<h1 className="text-[2rem] font-semibold tracking-[-0.03em] text-gray-900 dark:text-gray-100">
+					<h1 className="text-[1.6rem] font-semibold tracking-[-0.03em] text-gray-900 sm:text-[2rem] lg:text-[2.2rem] dark:text-gray-100">
 						{canLaunchProvidersLocally
 							? "Connect a provider"
 							: "Providers are required"}
@@ -284,9 +267,7 @@ export default function LayoutContent({
 					<div className="fixed right-4 top-4 z-50">
 						<UserMenu userName={userName} userEmail={userEmail} />
 					</div>
-					<div className="web-app-scroll">
-						{resolvedWorkspace && isWorkspaceGatewayPage ? null : children}
-					</div>
+					<div className="web-app-scroll">{children}</div>
 				</main>
 			</div>
 		);

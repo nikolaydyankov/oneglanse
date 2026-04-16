@@ -481,11 +481,10 @@ export default function Prompts() {
 
 	const LoadingState = () => (
 		<EmptyStatePanel
-			icon={Bot}
 			eyebrow="Loading"
 			title="Loading Prompts"
 			description="Pulling your prompt library into place."
-			contentClassName="max-w-sm px-6 py-7"
+			contentClassName="max-w-[19rem] px-4 py-5 sm:max-w-[20.5rem] sm:px-5 sm:py-5.5 xl:max-w-[23rem] xl:px-6 xl:py-6"
 		/>
 	);
 
@@ -511,12 +510,7 @@ export default function Prompts() {
 
 	if (isUserPromptsLoading || isAnalysedPromptsLoading) {
 		return (
-			<div className="flex min-h-svh flex-col">
-				<div className="flex items-center justify-between px-4 py-4 sm:px-6">
-					<Skeleton className="h-8 w-24 rounded-lg" />
-					<Skeleton className="h-9 w-28 rounded-xl" />
-				</div>
-
+			<div className="flex min-h-full flex-1 items-center justify-center px-4 py-4 sm:px-6 sm:py-6">
 				<LoadingState />
 			</div>
 		);
@@ -524,337 +518,332 @@ export default function Prompts() {
 
 	return (
 		<div className="ui-page-enter ui-stagger flex min-h-full flex-col">
-			<div className="px-4 py-4 sm:px-6 sm:py-6">
-				{/* Single Row: Actions + Filters */}
-				<div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-					{/* Left: Prompt actions */}
-					<div className="flex flex-wrap items-center gap-2">
-						{selectedRows.size === 0 ? (
-							<Dialog
-								open={dialogOpen}
-								onOpenChange={(open) => {
-									setDialogOpen(open);
+			<Dialog
+				open={dialogOpen}
+				onOpenChange={(open) => {
+					setDialogOpen(open);
 
-									if (!open) {
-										setEditIndex(null);
-										setEditPromptValue("");
-										setCurrentPrompt("");
+					if (!open) {
+						setEditIndex(null);
+						setEditPromptValue("");
+						setCurrentPrompt("");
+					}
+				}}
+			>
+				<DialogContent className={cn(formDialogContentClassName, "max-w-lg")}>
+					<DialogHeader className={formDialogHeaderClassName}>
+						<DialogTitle className="font-medium">
+							{editIndex !== null ? "Edit Prompt" : "Add Prompt"}
+						</DialogTitle>
+					</DialogHeader>
+					<div
+						className={cn(
+							formDialogBodyClassName,
+							"gap-5 pt-4 sm:gap-6 sm:pt-5",
+						)}
+					>
+						<div className="grid gap-2">
+							<Textarea
+								ref={promptTextareaRef}
+								placeholder={promptExample}
+								rows={2}
+								value={editIndex !== null ? editPromptValue : currentPrompt}
+								onChange={(e) => {
+									if (editIndex !== null) {
+										setEditPromptValue(e.target.value);
+									} else {
+										setCurrentPrompt(e.target.value);
 									}
+
+									requestAnimationFrame(syncPromptTextareaHeight);
 								}}
-							>
-								<DialogTrigger asChild>
+								className={cn(
+									formTextareaClassName,
+									"min-h-[76px] max-h-[220px] resize-none overflow-hidden shadow-[0_1px_2px_rgba(15,23,42,0.05),0_16px_36px_-22px_rgba(15,23,42,0.18)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.16),0_18px_40px_-24px_rgba(0,0,0,0.46)]",
+								)}
+							/>
+						</div>
+
+						<div className={formDialogSupportCardClassName}>
+							<p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-gray-500 dark:text-gray-400">
+								Strong Prompts Usually
+							</p>
+							<p className="mt-1 text-sm leading-6 text-gray-700 dark:text-gray-300">
+								focus on what the target audience is searching for: comparing
+								options, finding alternatives, evaluating pricing, or choosing
+								the best fit for a use case.
+							</p>
+						</div>
+					</div>
+					<div className="flex flex-col gap-3 px-5 pb-5 sm:flex-row sm:justify-end sm:px-6 sm:pb-6">
+						<Button
+							variant="outline"
+							className={cn(formSecondaryButtonClassName, "w-full sm:w-auto")}
+							onClick={() => setDialogOpen(false)}
+						>
+							Cancel
+						</Button>
+						<Button
+							onClick={handleAddOrEditPrompt}
+							disabled={
+								editIndex !== null
+									? !isEditPromptChanged
+									: !currentPrompt.trim()
+							}
+							className={cn(formPrimaryButtonClassName, "w-full sm:w-auto")}
+						>
+							{editIndex !== null ? "Update" : "Add"}
+						</Button>
+					</div>
+				</DialogContent>
+			</Dialog>
+
+			{promptData.length > 0 && (
+				<div className="px-4 py-4 sm:px-6 sm:py-6">
+					<div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+						<div className="flex flex-wrap items-center gap-2">
+							{selectedRows.size === 0 ? (
+								<Button
+									variant="outline"
+									className={cn(formToolbarButtonClassName, "gap-2")}
+									onClick={() => setDialogOpen(true)}
+								>
+									<Plus size={16} />
+									<span>Add Prompt</span>
+								</Button>
+							) : (
+								<>
 									<Button
 										variant="outline"
+										disabled={selectedRows.size !== 1}
+										onClick={() => {
+											const idx = Array.from(selectedRows)[0];
+
+											if (
+												typeof idx === "number" &&
+												idx >= 0 &&
+												idx < promptData.length
+											) {
+												setEditIndex(idx);
+												setEditPromptValue(promptData[idx]?.prompt ?? "");
+											} else {
+												setEditIndex(null);
+												setEditPromptValue("");
+											}
+
+											setDialogOpen(true);
+										}}
 										className={cn(formToolbarButtonClassName, "gap-2")}
 									>
-										<Plus size={16} />
-										<span>Add Prompt</span>
+										<Pencil size={16} />
+										<span>Edit</span>
 									</Button>
-								</DialogTrigger>
-								<DialogContent
-									className={cn(formDialogContentClassName, "max-w-lg")}
-								>
-									<DialogHeader className={formDialogHeaderClassName}>
-										<DialogTitle className="font-medium">
-											{editIndex !== null ? "Edit Prompt" : "Add Prompt"}
-										</DialogTitle>
-									</DialogHeader>
-									<div
+									<Button
+										variant="outline"
 										className={cn(
-											formDialogBodyClassName,
-											"gap-5 pt-4 sm:gap-6 sm:pt-5",
+											formToolbarButtonClassName,
+											"gap-2 border-red-200/80 bg-red-50/80 text-red-700 hover:bg-red-100 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-200 dark:hover:bg-red-950/50",
 										)}
+										onClick={() => {
+											const remaining = promptData.filter(
+												(_, i) => !selectedRows.has(i),
+											);
+											setPromptData(remaining);
+											setSelectedRows(new Set());
+											void savePrompts(remaining);
+										}}
 									>
-										<div className="grid gap-2">
-											<Textarea
-												ref={promptTextareaRef}
-												placeholder={promptExample}
-												rows={2}
-												value={
-													editIndex !== null ? editPromptValue : currentPrompt
-												}
-												onChange={(e) => {
-													if (editIndex !== null) {
-														setEditPromptValue(e.target.value);
-													} else {
-														setCurrentPrompt(e.target.value);
-													}
-
-													requestAnimationFrame(syncPromptTextareaHeight);
-												}}
-												className={cn(
-													formTextareaClassName,
-													"min-h-[76px] max-h-[220px] resize-none overflow-hidden shadow-[0_1px_2px_rgba(15,23,42,0.05),0_16px_36px_-22px_rgba(15,23,42,0.18)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.16),0_18px_40px_-24px_rgba(0,0,0,0.46)]",
-												)}
-											/>
-										</div>
-
-										<div className={formDialogSupportCardClassName}>
-											<p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-gray-500 dark:text-gray-400">
-												Strong Prompts Usually
-											</p>
-											<p className="mt-1 text-sm leading-6 text-gray-700 dark:text-gray-300">
-												focus on what the target audience is searching for:
-												comparing options, finding alternatives, evaluating
-												pricing, or choosing the best fit for a use case.
-											</p>
-										</div>
-									</div>
-									<div className="flex flex-col gap-3 px-5 pb-5 sm:flex-row sm:justify-end sm:px-6 sm:pb-6">
-										<Button
-											variant="outline"
-											className={cn(
-												formSecondaryButtonClassName,
-												"w-full sm:w-auto",
-											)}
-											onClick={() => setDialogOpen(false)}
-										>
-											Cancel
-										</Button>
-										<Button
-											onClick={handleAddOrEditPrompt}
-											disabled={
-												editIndex !== null
-													? !isEditPromptChanged
-													: !currentPrompt.trim()
-											}
-											className={cn(
-												formPrimaryButtonClassName,
-												"w-full sm:w-auto",
-											)}
-										>
-											{editIndex !== null ? "Update" : "Add"}
-										</Button>
-									</div>
-								</DialogContent>
-							</Dialog>
-						) : (
-							<>
-								<Button
-									variant="outline"
-									disabled={selectedRows.size !== 1}
-									onClick={() => {
-										const idx = Array.from(selectedRows)[0];
-
-										if (
-											typeof idx === "number" &&
-											idx >= 0 &&
-											idx < promptData.length
-										) {
-											setEditIndex(idx);
-											setEditPromptValue(promptData[idx]?.prompt ?? "");
-										} else {
-											setEditIndex(null);
-											setEditPromptValue("");
-										}
-
-										setDialogOpen(true);
-									}}
-									className={cn(formToolbarButtonClassName, "gap-2")}
-								>
-									<Pencil size={16} />
-									<span>Edit</span>
-								</Button>
-								<Button
-									variant="outline"
-									className={cn(
-										formToolbarButtonClassName,
-										"gap-2 border-red-200/80 bg-red-50/80 text-red-700 hover:bg-red-100 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-200 dark:hover:bg-red-950/50",
-									)}
-									onClick={() => {
-										const remaining = promptData.filter(
-											(_, i) => !selectedRows.has(i),
-										);
-										setPromptData(remaining);
-										setSelectedRows(new Set());
-										void savePrompts(remaining);
-									}}
-								>
-									<Trash2 size={16} />
-									<span>Delete ({selectedRows.size})</span>
-								</Button>
-							</>
-						)}
-					</div>
-
-					{/* Middle: Filters */}
-					<div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3 lg:w-auto">
-						{/* Model filter */}
-						<ProviderModelSelect
-							value={modelFilter}
-							onValueChange={setModelFilter}
-							triggerClassName={cn(
-								formToolbarSelectClassName,
-								"w-full sm:w-auto",
+										<Trash2 size={16} />
+										<span>Delete ({selectedRows.size})</span>
+									</Button>
+								</>
 							)}
-							contentClassName="z-[9999]"
-						/>
+						</div>
 
-						{/* Time filter */}
-						<TimeRangeSelect
-							value={timeFilter}
-							onValueChange={setTimeFilter}
-							triggerClassName={cn(
-								formToolbarSelectClassName,
-								"w-full sm:w-auto",
+						{/* Middle: Filters */}
+						<div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3 lg:w-auto">
+							{/* Model filter */}
+							<ProviderModelSelect
+								value={modelFilter}
+								onValueChange={setModelFilter}
+								triggerClassName={cn(
+									formToolbarSelectClassName,
+									"w-full sm:w-auto",
+								)}
+								contentClassName="z-[9999]"
+							/>
+
+							{/* Time filter */}
+							<TimeRangeSelect
+								value={timeFilter}
+								onValueChange={setTimeFilter}
+								triggerClassName={cn(
+									formToolbarSelectClassName,
+									"w-full sm:w-auto",
+								)}
+							/>
+
+							{/* Clear filters button */}
+							{(modelFilter !== "All Models" || timeFilter !== "all") && (
+								<>
+									<Separator
+										orientation="vertical"
+										className="hidden h-4 sm:block"
+									/>
+									<Button
+										variant="ghost"
+										onClick={() => {
+											setModelFilter("All Models");
+											setTimeFilter("all");
+										}}
+										className={cn(formToolbarGhostButtonClassName, "gap-2")}
+									>
+										<FilterX size={14} />
+										Clear
+									</Button>
+								</>
 							)}
-						/>
+						</div>
 
-						{/* Clear filters button */}
-						{(modelFilter !== "All Models" || timeFilter !== "all") && (
-							<>
-								<Separator
-									orientation="vertical"
-									className="hidden h-4 sm:block"
-								/>
-								<Button
-									variant="ghost"
-									onClick={() => {
-										setModelFilter("All Models");
-										setTimeFilter("all");
-									}}
-									className={cn(formToolbarGhostButtonClassName, "gap-2")}
-								>
-									<FilterX size={14} />
-									Clear
-								</Button>
-							</>
-						)}
-					</div>
-
-					{/* Right: Save action */}
-					<div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center lg:w-auto lg:justify-end">
-						{loading && (
-							<span className="text-muted-foreground text-sm">Saving...</span>
-						)}
-						<ExportMenu
-							className="w-full sm:w-auto"
-							disabled={!hasExportableData}
-							onExportJson={() => {
-								const analyzedRows = sortedPromptsWithMetrics.filter(
-									(row) => row.metrics !== null,
-								);
-								const topPrompt = analyzedRows
-									.slice()
-									.sort(
-										(a, b) =>
-											(b.metrics?.geoScore ?? 0) - (a.metrics?.geoScore ?? 0),
-									)[0];
-								const weakestPrompt = analyzedRows
-									.slice()
-									.sort(
-										(a, b) =>
-											(a.metrics?.geoScore ?? 0) - (b.metrics?.geoScore ?? 0),
-									)[0];
-								const promptRows = sortedPromptsWithMetrics.map(
-									({ prompt, metrics, modelProvider, reason }) => ({
-										promptId: prompt.id,
-										prompt: prompt.prompt,
-										modelProvider,
-										geoScore: metrics?.geoScore ?? null,
-										sentiment: metrics?.sentiment ?? null,
-										visibility: metrics?.visibility ?? null,
-										position: metrics?.position ?? null,
-										reason: reason ?? null,
-										responses: filteredRecords
-											.filter((r) => r.prompt_id === prompt.id)
-											.map((r) => ({
-												model: r.model_provider,
-												promptRunAt: r.prompt_run_at,
-												response: r.response,
-												citations: r.sources?.length ?? 0,
-												sources: (r.sources ?? []).map((source) => ({
-													title: source.title ?? "",
-													url: source.url ?? "",
-													domain: source.domain ?? "",
-													citedText: source.cited_text ?? "",
-												})),
-											})),
-									}),
-								);
-
-								downloadJson(`prompts-${workspaceId}-${Date.now()}.json`, {
-									generatedAt: new Date().toISOString(),
-									workspaceId,
-									report: {
-										title: "Prompt Performance Export",
-										version: "2.0",
-										filters: { modelFilter, timeFilter, sortBy, sortDirection },
-									},
-									overview: {
-										totalPrompts: sortedPromptsWithMetrics.length,
-										analyzedPrompts: analyzedRows.length,
-										unanalyzedPrompts:
-											sortedPromptsWithMetrics.length - analyzedRows.length,
-									},
-									impactSummary: {
-										highestGeoPrompt: topPrompt?.prompt.prompt ?? null,
-										highestGeoScore: topPrompt?.metrics?.geoScore ?? null,
-										lowestGeoPrompt: weakestPrompt?.prompt.prompt ?? null,
-										lowestGeoScore: weakestPrompt?.metrics?.geoScore ?? null,
-									},
-									actionPriorities: [
-										weakestPrompt
-											? `Improve weak prompt: "${weakestPrompt.prompt.prompt}" (GEO ${weakestPrompt.metrics?.geoScore ?? 0}).`
-											: null,
-										sortedPromptsWithMetrics.some(
-											(row) => row.reason === "brand-not-mentioned",
-										)
-											? "Revise prompts where brand is not mentioned to improve coverage."
-											: null,
-									].filter(Boolean),
-									detailedData: {
-										rows: promptRows,
-									},
-								});
-							}}
-							onExportCsv={() => {
-								const analyzedPromptCount = sortedPromptsWithMetrics.filter(
-									(row) => row.metrics !== null,
-								).length;
-								const rows = [
-									{
-										section: "overview",
-										metric: "Total Prompts",
-										value: sortedPromptsWithMetrics.length,
-									},
-									{
-										section: "overview",
-										metric: "Analyzed Prompts",
-										value: analyzedPromptCount,
-									},
-									{
-										section: "overview",
-										metric: "Unanalyzed Prompts",
-										value:
-											sortedPromptsWithMetrics.length - analyzedPromptCount,
-									},
-									...sortedPromptsWithMetrics.map(
-										({ prompt, metrics, modelProvider, reason }) => {
-											const promptSources = filteredRecords
+						{/* Right: Save action */}
+						<div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center lg:w-auto lg:justify-end">
+							{loading && (
+								<span className="text-muted-foreground text-sm">Saving...</span>
+							)}
+							<ExportMenu
+								className="w-full sm:w-auto"
+								disabled={!hasExportableData}
+								onExportJson={() => {
+									const analyzedRows = sortedPromptsWithMetrics.filter(
+										(row) => row.metrics !== null,
+									);
+									const topPrompt = analyzedRows
+										.slice()
+										.sort(
+											(a, b) =>
+												(b.metrics?.geoScore ?? 0) - (a.metrics?.geoScore ?? 0),
+										)[0];
+									const weakestPrompt = analyzedRows
+										.slice()
+										.sort(
+											(a, b) =>
+												(a.metrics?.geoScore ?? 0) - (b.metrics?.geoScore ?? 0),
+										)[0];
+									const promptRows = sortedPromptsWithMetrics.map(
+										({ prompt, metrics, modelProvider, reason }) => ({
+											promptId: prompt.id,
+											prompt: prompt.prompt,
+											modelProvider,
+											geoScore: metrics?.geoScore ?? null,
+											sentiment: metrics?.sentiment ?? null,
+											visibility: metrics?.visibility ?? null,
+											position: metrics?.position ?? null,
+											reason: reason ?? null,
+											responses: filteredRecords
 												.filter((r) => r.prompt_id === prompt.id)
-												.flatMap((r) => r.sources ?? []);
-											return {
-												section: "prompt_details",
-												prompt: prompt.prompt,
-												model: modelProvider,
-												geo_score: metrics?.geoScore ?? "",
-												sentiment: metrics?.sentiment ?? "",
-												visibility: metrics?.visibility ?? "",
-												position: metrics?.position ?? "",
-												status: reason ?? "ok",
-												source_urls: joinSourceUrls(promptSources),
-												cited_texts: joinCitedTexts(promptSources),
-											};
+												.map((r) => ({
+													model: r.model_provider,
+													promptRunAt: r.prompt_run_at,
+													response: r.response,
+													citations: r.sources?.length ?? 0,
+													sources: (r.sources ?? []).map((source) => ({
+														title: source.title ?? "",
+														url: source.url ?? "",
+														domain: source.domain ?? "",
+														citedText: source.cited_text ?? "",
+													})),
+												})),
+										}),
+									);
+
+									downloadJson(`prompts-${workspaceId}-${Date.now()}.json`, {
+										generatedAt: new Date().toISOString(),
+										workspaceId,
+										report: {
+											title: "Prompt Performance Export",
+											version: "2.0",
+											filters: {
+												modelFilter,
+												timeFilter,
+												sortBy,
+												sortDirection,
+											},
 										},
-									),
-								];
-								downloadCsv(`prompts-${workspaceId}-${Date.now()}.csv`, rows);
-							}}
-						/>
+										overview: {
+											totalPrompts: sortedPromptsWithMetrics.length,
+											analyzedPrompts: analyzedRows.length,
+											unanalyzedPrompts:
+												sortedPromptsWithMetrics.length - analyzedRows.length,
+										},
+										impactSummary: {
+											highestGeoPrompt: topPrompt?.prompt.prompt ?? null,
+											highestGeoScore: topPrompt?.metrics?.geoScore ?? null,
+											lowestGeoPrompt: weakestPrompt?.prompt.prompt ?? null,
+											lowestGeoScore: weakestPrompt?.metrics?.geoScore ?? null,
+										},
+										actionPriorities: [
+											weakestPrompt
+												? `Improve weak prompt: "${weakestPrompt.prompt.prompt}" (GEO ${weakestPrompt.metrics?.geoScore ?? 0}).`
+												: null,
+											sortedPromptsWithMetrics.some(
+												(row) => row.reason === "brand-not-mentioned",
+											)
+												? "Revise prompts where brand is not mentioned to improve coverage."
+												: null,
+										].filter(Boolean),
+										detailedData: {
+											rows: promptRows,
+										},
+									});
+								}}
+								onExportCsv={() => {
+									const analyzedPromptCount = sortedPromptsWithMetrics.filter(
+										(row) => row.metrics !== null,
+									).length;
+									const rows = [
+										{
+											section: "overview",
+											metric: "Total Prompts",
+											value: sortedPromptsWithMetrics.length,
+										},
+										{
+											section: "overview",
+											metric: "Analyzed Prompts",
+											value: analyzedPromptCount,
+										},
+										{
+											section: "overview",
+											metric: "Unanalyzed Prompts",
+											value:
+												sortedPromptsWithMetrics.length - analyzedPromptCount,
+										},
+										...sortedPromptsWithMetrics.map(
+											({ prompt, metrics, modelProvider, reason }) => {
+												const promptSources = filteredRecords
+													.filter((r) => r.prompt_id === prompt.id)
+													.flatMap((r) => r.sources ?? []);
+												return {
+													section: "prompt_details",
+													prompt: prompt.prompt,
+													model: modelProvider,
+													geo_score: metrics?.geoScore ?? "",
+													sentiment: metrics?.sentiment ?? "",
+													visibility: metrics?.visibility ?? "",
+													position: metrics?.position ?? "",
+													status: reason ?? "ok",
+													source_urls: joinSourceUrls(promptSources),
+													cited_texts: joinCitedTexts(promptSources),
+												};
+											},
+										),
+									];
+									downloadCsv(`prompts-${workspaceId}-${Date.now()}.csv`, rows);
+								}}
+							/>
+						</div>
 					</div>
 				</div>
-			</div>
+			)}
 
 			{promptData.length > 0 ? (
 				<div className="flex-1 px-4 pb-10 sm:px-6">

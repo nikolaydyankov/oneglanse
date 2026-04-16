@@ -291,7 +291,7 @@ export default function PeoplePage() {
 			{/* Workspace & Organization */}
 			<section>
 				<div className="mb-4 flex items-center gap-2">
-					<h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+					<h2 className="text-base font-semibold text-gray-900 sm:text-lg dark:text-gray-100">
 						Workspace & Organization
 					</h2>
 				</div>
@@ -512,7 +512,7 @@ export default function PeoplePage() {
 			{/* Join Code */}
 			<section>
 				<div className="mb-4 flex items-center gap-2">
-					<h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+					<h2 className="text-base font-semibold text-gray-900 sm:text-lg dark:text-gray-100">
 						Invite with a Code
 					</h2>
 				</div>
@@ -544,7 +544,7 @@ export default function PeoplePage() {
 							</div>
 						)}
 					</div>
-					<div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+					<div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
 						{joinInfoLoading ? (
 							<>
 								<Skeleton className="h-9 w-full sm:w-[300px]" />
@@ -584,7 +584,7 @@ export default function PeoplePage() {
 			{/* Members */}
 			<section>
 				<div className="mb-4 flex items-center gap-2">
-					<h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+					<h2 className="text-base font-semibold text-gray-900 sm:text-lg dark:text-gray-100">
 						Members
 					</h2>
 				</div>
@@ -594,7 +594,7 @@ export default function PeoplePage() {
 					id="invite-member-form"
 					className={cn(
 						formPanelClassName,
-						"mb-4 grid gap-3 p-5 md:grid-cols-[minmax(0,1fr)_10rem_10rem] md:items-end sm:p-6",
+						"mb-4 grid min-w-0 gap-3 p-5 lg:grid-cols-[minmax(0,1fr)_9rem_9rem] lg:items-end sm:p-6",
 					)}
 				>
 					<Input
@@ -673,7 +673,7 @@ export default function PeoplePage() {
 					</div>
 				) : (
 					<div className="web-touch-scroll">
-						<Table className="min-w-[560px] lg:min-w-[680px]">
+						<Table className="min-w-[32rem] lg:min-w-[38rem]">
 							<TableHeader>
 								<TableRow className="bg-gray-50/70 dark:bg-gray-900/40">
 									<TableHead className="px-4 py-3">Name</TableHead>
@@ -688,7 +688,7 @@ export default function PeoplePage() {
 										<TableCell className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-gray-100">
 											{member.userName}
 										</TableCell>
-										<TableCell className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
+										<TableCell className="px-4 py-3 text-sm whitespace-normal break-words [overflow-wrap:anywhere] text-gray-600 dark:text-gray-400">
 											{member.userEmail}
 										</TableCell>
 										<TableCell className="px-4 py-3">

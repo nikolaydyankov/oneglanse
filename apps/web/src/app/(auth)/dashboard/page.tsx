@@ -1,9 +1,9 @@
 "use client";
 
 import { ExportMenu } from "@/components/export-menu";
+import { useProviderRunToast } from "@/components/provider-run-toast";
 import { useSafeSearchParams } from "@/lib/navigation/use-safe-search-params";
 import { api } from "@/trpc/react";
-import type { AnalysisRecord } from "@oneglanse/types";
 import {
 	AggregateStatsRow,
 	BrandComparisonChart,
@@ -11,10 +11,9 @@ import {
 	CompetitiveLandscape,
 	TopSources,
 } from "@oneglanse/ui";
-import { useProviderRunToast } from "@/components/provider-run-toast";
 import { AlertTriangle, Info } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import {
 	useFetchAnalysedPrompts,
 	usePromptSources,
@@ -84,12 +83,6 @@ export default function Dashboard() {
 		router.push(`?${params.toString()}`, { scroll: false });
 	};
 
-	const [selectedRecord, setSelectedRecord] = useState<AnalysisRecord | null>(
-		null,
-	);
-	void selectedRecord;
-	void setSelectedRecord;
-
 	// Computed data
 	const metrics = useDashboardData(
 		analysedPromptData ?? [],
@@ -117,7 +110,7 @@ export default function Dashboard() {
 					<div className="web-empty-state-icon border-amber-200 bg-amber-50 dark:border-amber-900/50 dark:bg-amber-950/20">
 						<AlertTriangle className="h-5 w-5 text-amber-500" />
 					</div>
-					<h2 className="font-semibold text-gray-900 text-lg dark:text-gray-100">
+					<h2 className="text-base font-semibold text-gray-900 sm:text-lg dark:text-gray-100">
 						We couldn&apos;t load your dashboard
 					</h2>
 					<p className="mt-2 text-gray-500 text-sm dark:text-gray-400">

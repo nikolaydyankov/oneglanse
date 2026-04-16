@@ -125,6 +125,8 @@ const LOCAL_BUILD_PACKAGES = [
 	"@oneglanse/ui",
 ];
 
+export const LOCAL_WATCH_PACKAGES = [...LOCAL_BUILD_PACKAGES];
+
 export function spawnCommand(command, args, options = {}) {
 	return spawn(command, args, {
 		cwd: repoRoot,
@@ -258,6 +260,22 @@ export function runCommand(command, args, options = {}) {
 export async function buildLocalWorkspacePackages() {
 	for (const pkg of LOCAL_BUILD_PACKAGES) {
 		await runCommand("pnpm", ["--filter", pkg, "build"]);
+	}
+}
+
+export function spawnLocalWorkspacePackageWatchers(env) {
+	return LOCAL_WATCH_PACKAGES.map((pkg) =>
+		spawnCommand(
+			"pnpm",
+			["--filter", pkg, "exec", "tsc", "--watch", "--preserveWatchOutput"],
+			{ env },
+		),
+	);
+}
+
+export async function terminateLocalWorkspacePackageWatchers() {
+	for (const pkg of LOCAL_WATCH_PACKAGES) {
+		await terminateLocalProcesses([repoRoot, pkg, "tsc", "--watch"]);
 	}
 }
 

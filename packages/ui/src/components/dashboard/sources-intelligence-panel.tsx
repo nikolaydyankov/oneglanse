@@ -125,7 +125,7 @@ function MetricCard({
 					{label}
 				</span>
 			</div>
-			<p className="mt-3 break-words text-2xl font-semibold leading-none tracking-tight text-gray-900 dark:text-gray-100">
+			<p className="mt-3 break-words text-xl font-semibold leading-none tracking-tight text-gray-900 sm:text-2xl dark:text-gray-100">
 				{value}
 			</p>
 			<div className="mt-2 flex items-center gap-2">
@@ -274,14 +274,16 @@ export function SourcesIntelligencePanel({
 			</div>
 
 			{!hasData ? (
-				<div className="web-empty-state max-w-none py-16">
+				<div className="web-empty-state">
 					<div className="web-empty-state-icon">
 						<SearchX className="h-5 w-5 text-gray-400" />
 					</div>
-					<p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+					<p className="text-[13px] font-semibold text-gray-900 sm:text-sm xl:text-[15px] dark:text-gray-100">
 						{emptyTitle}
 					</p>
-					<p className="mt-1 text-xs text-muted-foreground">{emptySubtitle}</p>
+					<p className="mt-1 text-[11px] leading-[1.45] text-muted-foreground sm:text-xs xl:text-[13px]">
+						{emptySubtitle}
+					</p>
 				</div>
 			) : activeTab === "domains" ? (
 				<div className="rounded-[24px]">
@@ -342,7 +344,7 @@ export function SourcesIntelligencePanel({
 										<>URLs</>
 									)}
 								</TableHead>
-								<TableHead className="w-[130px] px-2 py-4 text-center text-[11px] font-semibold uppercase tracking-wide text-muted-foreground sm:px-4 sm:text-xs">
+								<TableHead className="w-[110px] px-2 py-4 text-center text-[11px] font-semibold uppercase tracking-wide text-muted-foreground sm:w-[130px] sm:px-4 sm:text-xs">
 									Providers
 								</TableHead>
 							</TableRow>
@@ -379,7 +381,7 @@ export function SourcesIntelligencePanel({
 										{domain.urlCount}
 									</TableCell>
 									<TableCell className="px-2 py-5 sm:px-4">
-										<div className="flex flex-nowrap items-center justify-center gap-1">
+										<div className="flex flex-wrap items-center justify-center gap-1">
 											{domain.providers.map((provider) => (
 												<img
 													key={`${domain.domain}-${provider}`}
@@ -416,7 +418,7 @@ export function SourcesIntelligencePanel({
 										Citations
 									</SortableHeader>
 								</TableHead>
-								<TableHead className="hidden w-[180px] whitespace-nowrap px-2 py-4 text-center text-[11px] font-semibold uppercase tracking-wide text-muted-foreground sm:table-cell sm:px-4 sm:text-xs">
+								<TableHead className="hidden w-[150px] whitespace-nowrap px-2 py-4 text-center text-[11px] font-semibold uppercase tracking-wide text-muted-foreground sm:table-cell sm:w-[180px] sm:px-4 sm:text-xs">
 									<SortableHeader
 										column="urls"
 										currentSort={sortColumn}
@@ -428,7 +430,7 @@ export function SourcesIntelligencePanel({
 										URLs
 									</SortableHeader>
 								</TableHead>
-								<TableHead className="w-[130px] whitespace-nowrap px-2 py-4 text-center text-[11px] font-semibold uppercase tracking-wide text-muted-foreground sm:px-4 sm:text-xs">
+								<TableHead className="w-[110px] whitespace-nowrap px-2 py-4 text-center text-[11px] font-semibold uppercase tracking-wide text-muted-foreground sm:w-[130px] sm:px-4 sm:text-xs">
 									<SortableHeader
 										column="providers"
 										currentSort={sortColumn}
@@ -474,7 +476,7 @@ export function SourcesIntelligencePanel({
 												</span>
 											</TableCell>
 											<TableCell className="px-2 py-5 sm:px-4">
-												<div className="flex flex-nowrap items-center justify-center gap-1">
+												<div className="flex flex-wrap items-center justify-center gap-1">
 													{group.providers.map((provider) => (
 														<img
 															key={`${group.domain}-${provider}`}
@@ -528,7 +530,7 @@ export function SourcesIntelligencePanel({
 															</TableCell>
 															<TableCell className="hidden px-2 py-5 align-top text-sm whitespace-normal text-gray-700 dark:text-gray-200 sm:table-cell sm:px-4 sm:whitespace-normal" />
 															<TableCell className="px-2 py-5 sm:px-4">
-																<div className="flex flex-nowrap items-center justify-center gap-1">
+																<div className="flex flex-wrap items-center justify-center gap-1">
 																	{source.providers.map((provider) => (
 																		<img
 																			key={`${source.url}-${provider}`}

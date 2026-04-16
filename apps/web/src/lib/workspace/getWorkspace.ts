@@ -1,3 +1,5 @@
+import "server-only";
+
 import { auth } from "@lib/auth/auth";
 import { db } from "@oneglanse/db";
 import type { Workspace } from "@oneglanse/db";
