@@ -3,7 +3,9 @@ import { toErrorMessage } from "@oneglanse/errors";
 import type { Provider, UserPrompt } from "@oneglanse/types";
 import { PROVIDER_LIST } from "@oneglanse/types";
 import { fetchUserPromptsForWorkspace } from "../prompt/index.js";
+import { getWorkspaceById } from "../workspace/index.js";
 import {
+	getAuthProviderForRuntimeProvider,
 	getMissingRuntimeProviders,
 	readAuthenticatedRuntimeProviders,
 } from "./auth.js";
@@ -149,8 +151,21 @@ export async function submitAgentJobGroup(args: {
 	const { workspaceId, userId } = args;
 
 	let prompts: UserPrompt[];
+	let allowedProviders: Provider[];
 	try {
-		prompts = await fetchUserPromptsForWorkspace({ workspaceId });
+		const [loadedPrompts, workspace] = await Promise.all([
+			fetchUserPromptsForWorkspace({ workspaceId }),
+			getWorkspaceById({ workspaceId }),
+		]);
+		prompts = loadedPrompts;
+		allowedProviders =
+			workspace.enabledProviders && workspace.enabledProviders.length > 0
+				? PROVIDER_LIST.filter((provider) =>
+						workspace.enabledProviders?.includes(
+							getAuthProviderForRuntimeProvider(provider),
+						),
+					)
+				: [...PROVIDER_LIST];
 	} catch (err) {
 		throw new Error(`failed to load workspace prompts: ${toErrorMessage(err)}`);
 	}
@@ -163,9 +178,11 @@ export async function submitAgentJobGroup(args: {
 	}
 
 	const jobGroupId = randomUUID();
-	const authenticatedProviders = await readAuthenticatedRuntimeProviders();
+	const authenticatedProviders =
+		await readAuthenticatedRuntimeProviders(allowedProviders);
 	if (authenticatedProviders.length === 0) {
-		const disconnectedProviders = await getMissingRuntimeProviders();
+		const disconnectedProviders =
+			await getMissingRuntimeProviders(allowedProviders);
 		console.warn(
 			`[agent] submitAgentJobGroup: no authenticated providers found for workspace ${workspaceId} — skipping`,
 		);

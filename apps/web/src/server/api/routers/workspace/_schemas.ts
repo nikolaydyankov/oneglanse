@@ -1,3 +1,4 @@
+import { AUTH_PROVIDER_LIST } from "@oneglanse/types";
 import { z } from "zod";
 
 export const createWorkspaceInputSchema = z.object({
@@ -41,4 +42,8 @@ export const removeMemberInputSchema = z.object({
 
 export const setScheduleInputSchema = z.object({
 	schedule: z.string().nullable(),
+});
+
+export const setEnabledProvidersInputSchema = z.object({
+	enabledProviders: z.array(z.enum(AUTH_PROVIDER_LIST)).nullable(),
 });

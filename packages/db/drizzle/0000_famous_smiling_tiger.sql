@@ -86,6 +86,8 @@ CREATE TABLE "verification" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+CREATE TYPE "public"."workspace_enabled_provider" AS ENUM('chatgpt', 'perplexity', 'gemini', 'google', 'claude');
+--> statement-breakpoint
 CREATE TABLE "workspaces" (
     "id" varchar(256) PRIMARY KEY NOT NULL,
     "name" varchar(256) NOT NULL,
@@ -93,6 +95,7 @@ CREATE TABLE "workspaces" (
 	"domain" varchar(256) NOT NULL,
     "tenant_id" varchar(256) NOT NULL,
     "schedule" varchar(64),
+    "enabled_providers" "workspace_enabled_provider"[],
     "created_at" timestamp NOT NULL,
     "deleted_at" timestamp
 );

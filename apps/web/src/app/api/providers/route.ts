@@ -36,7 +36,9 @@ export async function POST(request: Request) {
 export async function DELETE() {
 	try {
 		await Promise.all(
-			AUTH_PROVIDER_LIST.map((provider) => resetProviderAuthData(provider)),
+			AUTH_PROVIDER_LIST.map((authProvider) =>
+				resetProviderAuthData(authProvider),
+			),
 		);
 		return NextResponse.json({ ok: true });
 	} catch (error) {

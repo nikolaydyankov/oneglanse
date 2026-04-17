@@ -13,7 +13,7 @@ import {
 import type { ProviderConnectionCard } from "@/lib/provider-connections/types";
 import { Button, toast } from "@oneglanse/ui";
 import { cn, getModelFavicon } from "@oneglanse/utils";
-import { Loader2, RotateCcw, RotateCw } from "lucide-react";
+import { CheckCircle2, Loader2, RotateCcw, RotateCw } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 const CARD_ORDER: Array<ProviderConnectionCard["provider"]> = [
@@ -49,37 +49,26 @@ function sortConnectionCards(
 	});
 }
 
-function getConnectionStatusLabel(
-	card: ProviderConnectionCard,
-	remoteSyncConfigured: boolean | undefined,
-): string {
+function getConnectionStatusLabel(card: ProviderConnectionCard): string {
 	if (card.status.connecting) {
 		return "Connecting";
 	}
 
-	if (card.status.synced) {
-		return remoteSyncConfigured ? "Synced" : "Connected";
-	}
-
-	return card.status.connected ? "Saved locally" : "";
+	return card.status.connected ? "" : "Disconnected";
 }
 
 function getConnectionStatusMessage(
 	card: ProviderConnectionCard,
 ): string | null {
-	if (card.status.error) {
-		return card.status.error;
-	}
-
 	if (card.status.connecting) {
 		return "Finish the sign-in flow and close the provider browser window to activate this provider.";
 	}
 
-	if (!card.authFileExists) {
-		return `Auth file not found at ${card.authFilePath}`;
+	if (!card.status.connected) {
+		return null;
 	}
 
-	return null;
+	return card.status.error;
 }
 
 function getConnectionCardClasses(card: ProviderConnectionCard): string {
@@ -95,10 +84,6 @@ function getConnectionCardClasses(card: ProviderConnectionCard): string {
 }
 
 function getConnectionBadgeClasses(card: ProviderConnectionCard): string {
-	if (card.status.connected) {
-		return "border border-gray-200/80 bg-stone-50 text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200";
-	}
-
 	if (card.status.connecting) {
 		return "border border-gray-200/80 bg-stone-100 text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200";
 	}
@@ -128,12 +113,14 @@ export function ProviderConnectionsPanel(props: {
 	description?: string | null;
 	nextHref?: string | null;
 	showSetupNotice?: boolean;
+	isSelfHost?: boolean;
 }) {
 	const {
 		title = "Providers",
 		description = "Log in to a provider, then close the browser window. Auth is saved automatically.",
 		nextHref = null,
 		showSetupNotice = true,
+		isSelfHost = false,
 	} = props;
 	const router = useRouter();
 	const authProvidersQuery = useProviderConnections();
@@ -167,41 +154,101 @@ export function ProviderConnectionsPanel(props: {
 
 	return (
 		<section>
-			{title || description ? (
-				<div className="mb-6 flex max-w-2xl items-start justify-between gap-4">
-					<div className="space-y-1.5">
-						{title ? (
-							<h2 className="text-lg font-semibold tracking-[-0.025em] text-gray-900 sm:text-xl dark:text-gray-100">
-								{title}
-							</h2>
-						) : null}
-						{description ? (
-							<p className="text-sm leading-6 text-gray-500 dark:text-gray-400">
-								{description}
-							</p>
-						) : null}
-					</div>
-					{hasAtLeastOneConnection ? (
-						<Button
-							variant="ghost"
-							className={cn(
-								formSecondaryButtonClassName,
-								"shrink-0 gap-1.5 text-gray-500",
-							)}
-							onClick={() => resetAllMutation.mutate()}
-							disabled={resetAllMutation.isPending || isAnyConnectionPending}
-							title="Reset all provider sessions"
-						>
-							{resetAllMutation.isPending ? (
-								<Loader2 className="h-3.5 w-3.5 animate-spin" />
-							) : (
-								<RotateCcw className="h-3.5 w-3.5" />
-							)}
-							Reset all
-						</Button>
+			<div className="mb-6 space-y-2">
+				<div className="space-y-2">
+					{title ? (
+						<h2 className="text-[1.45rem] font-semibold leading-tight tracking-[-0.03em] text-gray-950 sm:text-[1.8rem] dark:text-gray-50">
+							{title}
+						</h2>
 					) : null}
+					{description ? (
+						<p className="text-sm leading-6 text-gray-500 dark:text-gray-400">
+							{description}
+						</p>
+					) : null}
+
+					<div className="rounded-[calc(var(--app-radius)+0.1rem)] border border-gray-200/80 bg-white/50 p-3 dark:border-gray-800 dark:bg-white/[0.03]">
+						<div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+							<div className="space-y-1">
+								<p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">
+									Setup Flow
+								</p>
+								<p className="text-sm font-medium tracking-[-0.02em] text-gray-900 dark:text-gray-100">
+									How provider access works
+								</p>
+								<p className="text-xs leading-5 text-gray-500 dark:text-gray-400">
+									{isSelfHost
+										? "Connect locally, upload the saved auth session, then use it from the VPS."
+										: "Connect once on this machine, then use only the providers you keep active."}
+								</p>
+							</div>
+
+							<Button
+								variant="ghost"
+								className={cn(
+									formSecondaryButtonClassName,
+									"w-full gap-2 border border-gray-200/80 bg-white/85 text-gray-600 dark:border-gray-700 dark:bg-white/5 dark:text-gray-300 sm:w-auto",
+								)}
+								onClick={() => resetAllMutation.mutate()}
+								disabled={
+									!hasAtLeastOneConnection ||
+									resetAllMutation.isPending ||
+									isAnyConnectionPending
+								}
+								title="Reset all provider sessions"
+							>
+								{resetAllMutation.isPending ? (
+									<Loader2 className="h-3.5 w-3.5 animate-spin" />
+								) : (
+									<RotateCcw className="h-3.5 w-3.5" />
+								)}
+								Reset all
+							</Button>
+						</div>
+
+						<div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+							<div className="rounded-[var(--app-radius)] border border-gray-200/80 bg-white/80 px-3 py-3 dark:border-gray-800 dark:bg-white/5">
+								<p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-400 dark:text-gray-500">
+									1. Connect
+								</p>
+								<p className="mt-1 text-xs leading-5 text-gray-600 dark:text-gray-300">
+									{isSelfHost
+										? "Connect to the providers."
+										: "Open a provider and finish sign-in in the browser window."}
+								</p>
+							</div>
+							<div className="rounded-[var(--app-radius)] border border-gray-200/80 bg-white/80 px-3 py-3 dark:border-gray-800 dark:bg-white/5">
+								<p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-400 dark:text-gray-500">
+									2. Save
+								</p>
+								<p className="mt-1 text-xs leading-5 text-gray-600 dark:text-gray-300">
+									Close the window; the session is stored automatically.
+								</p>
+							</div>
+							<div className="rounded-[var(--app-radius)] border border-gray-200/80 bg-white/80 px-3 py-3 dark:border-gray-800 dark:bg-white/5">
+								<p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-400 dark:text-gray-500">
+									{isSelfHost ? "3. Upload" : "3. Run"}
+								</p>
+								<p className="mt-1 text-xs leading-5 text-gray-600 dark:text-gray-300">
+									{isSelfHost
+										? "Run `pnpm upload vps` so the auth session is transferred to the VPS."
+										: "Connect the providers you want available for prompt runs on this machine."}
+								</p>
+							</div>
+							{isSelfHost ? (
+								<div className="rounded-[var(--app-radius)] border border-gray-200/80 bg-white/80 px-3 py-3 dark:border-gray-800 dark:bg-white/5 sm:col-span-3">
+									<p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-400 dark:text-gray-500">
+										4. Run on VPS
+									</p>
+									<p className="mt-1 text-xs leading-5 text-gray-600 dark:text-gray-300">
+										You can use it on the VPS to run prompts.
+									</p>
+								</div>
+							) : null}
+						</div>
+					</div>
 				</div>
-			) : null}
+			</div>
 
 			{authProvidersQuery.isLoading ? (
 				<div className="mb-6 flex items-center gap-2 rounded-[var(--app-radius)] border border-gray-200/80 px-4 py-3 text-sm text-gray-500 dark:border-gray-800 dark:text-gray-400">
@@ -230,7 +277,7 @@ export function ProviderConnectionsPanel(props: {
 				</p>
 			) : null}
 
-			<div className="flex flex-col gap-4">
+			<div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
 				{cards.map((card) => {
 					const status = card.status;
 					const { isPendingForProvider, isPendingConnect, isPendingRefresh } =
@@ -242,10 +289,8 @@ export function ProviderConnectionsPanel(props: {
 					const isConnected = status.connected;
 					const primaryProvider = card.providers[0] ?? card.provider;
 					const cardTitle = getConnectionCardTitle(card);
-					const statusLabel = getConnectionStatusLabel(
-						card,
-						authProvidersQuery.data?.remoteSyncConfigured,
-					);
+					const statusLabel = getConnectionStatusLabel(card);
+					const statusMessage = getConnectionStatusMessage(card);
 					const canInteractivelyReconnect = Boolean(
 						authProvidersQuery.data?.interactiveConnectAllowed,
 					);
@@ -257,10 +302,11 @@ export function ProviderConnectionsPanel(props: {
 						<div
 							key={card.provider}
 							className={cn(
-								"group overflow-hidden px-5 py-5 transition-[background-color,box-shadow] duration-200 ease-out sm:px-6 sm:py-5",
+								"group relative overflow-hidden px-5 py-5 transition-[background-color,box-shadow,border-color,transform] duration-200 ease-out hover:-translate-y-0.5 sm:px-6 sm:py-5",
 								getConnectionCardClasses(card),
 							)}
 						>
+							<div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gray-300/70 to-transparent dark:via-white/10" />
 							<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 								<div className="min-w-0 flex-1">
 									<div className="flex items-center gap-3">
@@ -279,9 +325,15 @@ export function ProviderConnectionsPanel(props: {
 													{cardTitle}
 												</p>
 											</div>
-											{getConnectionStatusMessage(card) ? (
+											{isConnected && !statusMessage ? (
+												<div className="mt-2 inline-flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400">
+													<CheckCircle2 className="h-3.5 w-3.5" />
+													Ready for prompt runs
+												</div>
+											) : null}
+											{statusMessage ? (
 												<p className="mt-1.5 text-sm leading-5 text-red-500 dark:text-red-300">
-													{getConnectionStatusMessage(card)}
+													{statusMessage}
 												</p>
 											) : null}
 										</div>

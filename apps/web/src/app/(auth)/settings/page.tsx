@@ -51,6 +51,9 @@ export default function SettingsPage() {
 	const searchParams = useSafeSearchParams();
 	const workspaceId = searchParams.get("workspace") ?? "";
 	const router = useRouter();
+	const subtleBorderButtonClassName = "border-gray-200/80 dark:border-gray-800";
+	const destructiveSubtleBorderButtonClassName =
+		"border-red-200/80 bg-red-50 text-red-700 hover:bg-red-100 hover:text-red-800 dark:border-red-900/70 dark:bg-red-950/30 dark:text-red-300 dark:hover:bg-red-950/50 dark:hover:text-red-200";
 
 	// User email from layout context (server-fetched, no waterfall)
 	const userEmail = useLayoutUserEmail();
@@ -272,6 +275,7 @@ export default function SettingsPage() {
 									variant="outline"
 									className={cn(
 										formSecondaryButtonClassName,
+										subtleBorderButtonClassName,
 										"w-full gap-2 sm:w-auto",
 									)}
 									onClick={handleExportAllJson}
@@ -289,6 +293,7 @@ export default function SettingsPage() {
 									variant="outline"
 									className={cn(
 										formSecondaryButtonClassName,
+										subtleBorderButtonClassName,
 										"w-full gap-2 sm:w-auto",
 									)}
 									onClick={handleExportAllCsv}
@@ -327,10 +332,11 @@ export default function SettingsPage() {
 							</p>
 						</div>
 						<Button
-							variant="destructive"
 							className={cn(
-								formPrimaryButtonClassName,
-								"h-10 w-auto shrink-0 self-start px-4 bg-red-600 text-white hover:bg-red-700 hover:text-white dark:bg-red-600 dark:text-white dark:hover:bg-red-500 dark:hover:text-white sm:self-auto",
+								formSecondaryButtonClassName,
+								subtleBorderButtonClassName,
+								destructiveSubtleBorderButtonClassName,
+								"h-10 w-auto shrink-0 self-start px-4 sm:self-auto",
 							)}
 							onClick={() => {
 								setDeleteConfirmEmail("");
@@ -345,23 +351,26 @@ export default function SettingsPage() {
 
 			{/* Delete Account Confirmation Dialog */}
 			<Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-				<DialogContent className="px-5 py-5 sm:px-6 sm:py-6">
-					<DialogHeader className="space-y-2">
+				<DialogContent className={formDialogContentClassName}>
+					<DialogHeader className={formDialogHeaderClassName}>
 						<DialogTitle className="text-lg font-semibold tracking-[-0.01em] text-gray-950 dark:text-gray-50">
 							Delete Account
 						</DialogTitle>
+						<DialogDescription className="text-sm leading-6 text-gray-500 dark:text-gray-400">
+							Deleting your account permanently removes your workspaces and
+							associated data.
+						</DialogDescription>
 					</DialogHeader>
 
-					<div className="rounded-[var(--app-radius)] border border-amber-200 bg-amber-50 px-3 py-3 dark:border-amber-900/60 dark:bg-amber-950/20">
-						<p className="text-xs leading-5 text-amber-800 dark:text-amber-300">
-							If you are the sole owner of any organization, that organization
-							and all its workspaces will be permanently deleted along with your
-							account.
-						</p>
-					</div>
+					<div className={formDialogBodyClassName}>
+						<div className="rounded-[var(--app-radius)] border border-amber-200 bg-amber-50 px-3 py-3 dark:border-amber-900/60 dark:bg-amber-950/20">
+							<p className="text-xs leading-5 text-amber-800 dark:text-amber-300">
+								If you are the sole owner of any organization, that organization
+								and all its workspaces will be permanently deleted along with
+								your account.
+							</p>
+						</div>
 
-					{/* 🔥 Equal spacing block */}
-					<div className="mt-5 space-y-5">
 						<div className="space-y-2">
 							<Label
 								htmlFor="delete-confirm-email"
@@ -381,14 +390,18 @@ export default function SettingsPage() {
 								value={deleteConfirmEmail}
 								onChange={(e) => setDeleteConfirmEmail(e.target.value)}
 								onKeyDown={(e) => e.key === "Enter" && handleDeleteAccount()}
-								className="h-9"
+								className={cn(formFieldClassName, "h-9")}
 							/>
 						</div>
 					</div>
 
-					<DialogFooter className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+					<DialogFooter className={formDialogFooterClassName}>
 						<Button
-							className={cn(formSecondaryButtonClassName, "w-full sm:w-auto")}
+							className={cn(
+								formSecondaryButtonClassName,
+								subtleBorderButtonClassName,
+								"w-full sm:w-auto",
+							)}
 							onClick={() => setShowDeleteDialog(false)}
 							disabled={isDeletingAccount}
 						>
@@ -396,7 +409,12 @@ export default function SettingsPage() {
 						</Button>
 
 						<Button
-							className="w-full bg-red-600 text-white hover:bg-red-700 hover:text-white sm:w-auto"
+							className={cn(
+								formSecondaryButtonClassName,
+								subtleBorderButtonClassName,
+								destructiveSubtleBorderButtonClassName,
+								"w-full sm:w-auto",
+							)}
 							onClick={handleDeleteAccount}
 							disabled={
 								isDeletingAccount ||

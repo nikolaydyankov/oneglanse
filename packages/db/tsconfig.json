@@ -7,7 +7,6 @@
 		"noEmit": false,
 		"isolatedModules": true,
 		"composite": true,
-
 		/* Output */
 		"rootDir": "./src",
 		"outDir": "./dist",
@@ -15,6 +14,5 @@
 		"declarationMap": true
 	},
 	"include": ["src/**/*.ts"],
-	"exclude": ["node_modules", "dist"],
-	"references": [{ "path": "../types" }]
+	"exclude": ["node_modules", "dist"]
 }

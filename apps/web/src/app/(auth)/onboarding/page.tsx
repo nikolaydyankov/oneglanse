@@ -35,11 +35,24 @@ import {
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-const SUGGESTED_PROMPTS = [
+const SUGGESTED_PROMPT_TEMPLATES = [
 	"What are the best alternatives to {brand} for buyers comparing options in this category?",
 	"How does {brand} compare with competitors on pricing, usability, and overall value?",
 	"What are the main reasons customers choose {brand} versus other brands in this market?",
+	"What do customers praise most about {brand}, and what complaints come up most often?",
+	"Which use cases is {brand} best suited for, and where does it fall short?",
+	"How does {brand} stand out in terms of features, service, or customer experience?",
+	"What would make someone switch from a competitor to {brand}?",
+	"How is {brand} positioned in the market compared with similar brands?",
+	"What factors should a buyer consider before choosing {brand}?",
+	"Who is the ideal customer for {brand}, and who may be better served by another option?",
 ];
+
+function pickRandomItem<T>(items: T[]) {
+	if (items.length === 0) return null;
+	const item = items[Math.floor(Math.random() * items.length)];
+	return item ?? null;
+}
 
 export default function FirstWorkspaceOnboardingPage() {
 	const router = useRouter();
@@ -53,8 +66,17 @@ export default function FirstWorkspaceOnboardingPage() {
 	const [isSuggestedPromptsExpanded, setIsSuggestedPromptsExpanded] =
 		useState(true);
 	const [suggestedPromptsHeight, setSuggestedPromptsHeight] = useState(0);
+	const [currentSuggestedPrompt, setCurrentSuggestedPrompt] = useState<
+		string | null
+	>(null);
+	const [suggestedPromptAnimation, setSuggestedPromptAnimation] = useState<
+		"idle" | "slide-left" | "slide-right"
+	>("idle");
 	const inputRef = useRef<HTMLTextAreaElement>(null);
 	const suggestedPromptsRef = useRef<HTMLDivElement>(null);
+	const suggestedPromptAnimationTimeoutRef = useRef<ReturnType<
+		typeof setTimeout
+	> | null>(null);
 
 	const workspaceQuery = api.workspace.getById.useQuery(
 		{ workspaceId },
@@ -74,19 +96,50 @@ export default function FirstWorkspaceOnboardingPage() {
 
 	const suggestedPrompts = useMemo(
 		() =>
-			SUGGESTED_PROMPTS.map((p) =>
+			SUGGESTED_PROMPT_TEMPLATES.map((p) =>
 				p.replaceAll("{brand}", brandName || "your brand"),
 			),
 		[brandName],
 	);
+	const availableSuggestedPrompts = useMemo(
+		() =>
+			suggestedPrompts.filter(
+				(prompt) =>
+					!prompts.some((addedPrompt) => addedPrompt.trim() === prompt.trim()),
+			),
+		[suggestedPrompts, prompts],
+	);
 
-	const addPrompt = (value: string) => {
+	const addPrompt = (
+		value: string,
+		options?: { source?: "manual" | "suggested" },
+	) => {
 		const trimmed = value.trim();
 		if (!trimmed) return;
 		if (prompts.some((p) => p.trim() === trimmed)) return;
 		setPrompts((prev) => [...prev, trimmed]);
+		if (options?.source === "manual") {
+			setIsSuggestedPromptsExpanded(false);
+		} else if (options?.source === "suggested") {
+			setIsSuggestedPromptsExpanded(true);
+		}
 		setInputValue("");
 		inputRef.current?.focus();
+	};
+
+	const transitionSuggestedPrompt = (args: {
+		direction: "slide-left" | "slide-right";
+		nextPrompt: string | null;
+	}) => {
+		if (suggestedPromptAnimationTimeoutRef.current) {
+			clearTimeout(suggestedPromptAnimationTimeoutRef.current);
+		}
+
+		setSuggestedPromptAnimation(args.direction);
+		suggestedPromptAnimationTimeoutRef.current = setTimeout(() => {
+			setCurrentSuggestedPrompt(args.nextPrompt);
+			setSuggestedPromptAnimation("idle");
+		}, 180);
 	};
 
 	const removePrompt = (index: number) => {
@@ -96,7 +149,7 @@ export default function FirstWorkspaceOnboardingPage() {
 	const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
 		if (e.key === "Enter" && !e.shiftKey) {
 			e.preventDefault();
-			addPrompt(inputValue);
+			addPrompt(inputValue, { source: "manual" });
 		}
 	};
 
@@ -155,8 +208,52 @@ export default function FirstWorkspaceOnboardingPage() {
 		isStartingRun || storePrompts.isPending || runAgent.isPending;
 
 	useEffect(() => {
-		setIsSuggestedPromptsExpanded(prompts.length === 0);
+		if (prompts.length === 0) {
+			setIsSuggestedPromptsExpanded(true);
+		}
 	}, [prompts.length]);
+
+	useEffect(() => {
+		if (availableSuggestedPrompts.length === 0) {
+			if (suggestedPromptAnimationTimeoutRef.current) {
+				clearTimeout(suggestedPromptAnimationTimeoutRef.current);
+			}
+			setCurrentSuggestedPrompt(null);
+			setSuggestedPromptAnimation("idle");
+			return;
+		}
+
+		setCurrentSuggestedPrompt((currentPrompt) => {
+			if (currentPrompt && availableSuggestedPrompts.includes(currentPrompt)) {
+				return currentPrompt;
+			}
+
+			return pickRandomItem(availableSuggestedPrompts);
+		});
+	}, [availableSuggestedPrompts]);
+
+	const dismissSuggestedPrompt = () => {
+		const remainingPrompts = availableSuggestedPrompts.filter(
+			(prompt) => prompt !== currentSuggestedPrompt,
+		);
+		transitionSuggestedPrompt({
+			direction: "slide-left",
+			nextPrompt: pickRandomItem(remainingPrompts),
+		});
+	};
+
+	const addSuggestedPrompt = () => {
+		if (!currentSuggestedPrompt) return;
+		const selectedPrompt = currentSuggestedPrompt;
+		const remainingPrompts = availableSuggestedPrompts.filter(
+			(prompt) => prompt !== selectedPrompt,
+		);
+		addPrompt(selectedPrompt, { source: "suggested" });
+		transitionSuggestedPrompt({
+			direction: "slide-left",
+			nextPrompt: pickRandomItem(remainingPrompts),
+		});
+	};
 
 	useEffect(() => {
 		const element = suggestedPromptsRef.current;
@@ -186,6 +283,14 @@ export default function FirstWorkspaceOnboardingPage() {
 		const nextHeight = Math.min(element.scrollHeight, 160);
 		element.style.height = `${Math.max(nextHeight, 44)}px`;
 	});
+
+	useEffect(() => {
+		return () => {
+			if (suggestedPromptAnimationTimeoutRef.current) {
+				clearTimeout(suggestedPromptAnimationTimeoutRef.current);
+			}
+		};
+	}, []);
 
 	return (
 		<div className="web-centered-page">
@@ -235,7 +340,7 @@ export default function FirstWorkspaceOnboardingPage() {
 								/>
 								<button
 									type="button"
-									onClick={() => addPrompt(inputValue)}
+									onClick={() => addPrompt(inputValue, { source: "manual" })}
 									disabled={!inputValue.trim() || isPending}
 									className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--app-radius)] border border-gray-200 bg-white text-gray-600 transition hover:bg-stone-50 hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-100 xl:h-10 xl:w-10"
 								>
@@ -253,7 +358,12 @@ export default function FirstWorkspaceOnboardingPage() {
 										({prompts.length})
 									</span>
 								</Label>
-								<div className="space-y-2">
+								<div
+									className={cn(
+										"space-y-2",
+										prompts.length > 3 && "max-h-56 overflow-y-auto pr-2",
+									)}
+								>
 									{prompts.map((prompt, index) => (
 										<div
 											key={`${index}-${prompt}`}
@@ -320,34 +430,49 @@ export default function FirstWorkspaceOnboardingPage() {
 									ref={suggestedPromptsRef}
 									className="space-y-2 pt-0.5 xl:space-y-2.5"
 								>
-									{suggestedPrompts.map((prompt) => {
-										const alreadyAdded = prompts.some(
-											(p) => p.trim() === prompt.trim(),
-										);
-										return (
-											<button
-												key={prompt}
-												type="button"
-												onClick={() => addPrompt(prompt)}
-												disabled={alreadyAdded || isPending}
-												className={cn(
-													"group flex w-full rounded-[var(--app-radius)] border border-gray-200/80 bg-white px-3 py-2.5 text-left shadow-[0_2px_8px_-4px_rgba(0,0,0,0.06)] transition duration-150 xl:px-4 xl:py-3",
-													"hover:border-gray-300 hover:shadow-[0_4px_14px_-6px_rgba(0,0,0,0.1)]",
-													"dark:border-gray-800 dark:bg-neutral-950 dark:shadow-[0_2px_8px_-4px_rgba(0,0,0,0.3)]",
-													"dark:hover:border-gray-700 dark:hover:shadow-[0_4px_14px_-6px_rgba(0,0,0,0.4)]",
-													alreadyAdded &&
-														"pointer-events-none cursor-default opacity-40",
-												)}
-											>
-												<div className="flex min-w-0 flex-1 items-center gap-2">
-													<Plus className="h-3.5 w-3.5 shrink-0 text-gray-400 transition group-hover:text-gray-600 dark:text-gray-500 dark:group-hover:text-gray-300" />
-													<span className="line-clamp-2 text-[11px] leading-5 text-gray-700 dark:text-gray-300 xl:text-[13px] xl:leading-6">
-														{prompt}
+									{currentSuggestedPrompt ? (
+										<div
+											className={cn(
+												"rounded-[var(--app-radius)] border border-gray-200/80 bg-white px-3 py-3 shadow-[0_2px_8px_-4px_rgba(0,0,0,0.06)] transition-[opacity,transform] duration-200 ease-out dark:border-gray-800 dark:bg-neutral-950 dark:shadow-[0_2px_8px_-4px_rgba(0,0,0,0.3)] xl:px-4 xl:py-3.5",
+												suggestedPromptAnimation === "slide-left" &&
+													"translate-x-4 rotate-[1.5deg] opacity-0",
+												suggestedPromptAnimation === "slide-right" &&
+													"-translate-x-4 -rotate-[1.5deg] opacity-0",
+											)}
+										>
+											<div className="flex items-start gap-3">
+												<div className="flex min-w-0 flex-1 items-center gap-2.5">
+													<button
+														type="button"
+														onClick={addSuggestedPrompt}
+														disabled={isPending}
+														className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-gray-200/80 bg-stone-100 text-gray-700 shadow-[0_4px_12px_-8px_rgba(15,23,42,0.35)] transition hover:scale-[1.04] hover:bg-white hover:text-gray-950 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800 dark:hover:text-gray-50 xl:h-8 xl:w-8"
+														aria-label="Add suggested prompt"
+														title="Add suggested prompt"
+													>
+														<Plus className="h-3.5 w-3.5 xl:h-4 xl:w-4" />
+													</button>
+													<span className="min-w-0 flex-1 break-words text-[11px] leading-5 text-gray-700 dark:text-gray-300 xl:text-[13px] xl:leading-6">
+														{currentSuggestedPrompt}
 													</span>
 												</div>
-											</button>
-										);
-									})}
+												<button
+													type="button"
+													onClick={dismissSuggestedPrompt}
+													disabled={isPending}
+													className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-[var(--app-radius)] text-gray-400 transition hover:bg-gray-200/70 hover:text-gray-700 dark:text-gray-500 dark:hover:bg-gray-700/60 dark:hover:text-gray-200 xl:h-6 xl:w-6"
+													aria-label="Show another suggested prompt"
+												>
+													<X className="h-3 w-3 xl:h-3.5 xl:w-3.5" />
+												</button>
+											</div>
+										</div>
+									) : (
+										<div className="rounded-[var(--app-radius)] border border-dashed border-gray-200/80 px-3 py-3 text-[11px] leading-5 text-gray-500 dark:border-gray-800 dark:text-gray-400 xl:px-4 xl:text-[13px] xl:leading-6">
+											All suggested prompts are currently in your list. Remove
+											one to bring it back here.
+										</div>
+									)}
 								</div>
 							</div>
 						</div>
@@ -365,7 +490,7 @@ export default function FirstWorkspaceOnboardingPage() {
 								{isPending ? (
 									<Loader2 className="h-4 w-4 animate-spin" />
 								) : (
-									"Save & Run Analysis"
+									"Save & Run Prompts"
 								)}
 							</Button>
 							<Button

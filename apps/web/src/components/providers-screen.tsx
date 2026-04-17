@@ -5,12 +5,14 @@ export function ProvidersScreen(props: {
 	description?: string | null;
 	nextHref?: string | null;
 	showSetupNotice?: boolean;
+	isSelfHost?: boolean;
 }) {
 	const {
 		title = null,
 		description = null,
 		nextHref = null,
 		showSetupNotice = true,
+		isSelfHost = false,
 	} = props;
 
 	return (
@@ -21,6 +23,7 @@ export function ProvidersScreen(props: {
 					description={description}
 					nextHref={nextHref}
 					showSetupNotice={showSetupNotice}
+					isSelfHost={isSelfHost}
 				/>
 			</div>
 		</div>

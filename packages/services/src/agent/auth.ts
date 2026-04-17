@@ -880,7 +880,8 @@ export async function isAuthProviderReady(
 	]);
 	const hasAuthFile = existsSync(getAuthSessionFile(provider));
 	const browserStillOpen =
-		Boolean(storedStatus?.connecting) && isProcessAlive(storedStatus?.launcherPid);
+		Boolean(storedStatus?.connecting) &&
+		isProcessAlive(storedStatus?.launcherPid);
 
 	return hasAuthFile && hasUsableAuthState(sessionState) && !browserStillOpen;
 }

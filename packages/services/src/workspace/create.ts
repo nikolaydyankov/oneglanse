@@ -17,6 +17,7 @@ export async function createWorkspaceForTenant(
 		domain,
 		tenantId,
 		schedule: null,
+		enabledProviders: null,
 		createdAt: new Date(),
 		deletedAt: null,
 	};

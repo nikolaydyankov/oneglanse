@@ -488,12 +488,14 @@ export default function SchedulePageClient({
 
 	if (!canConfigureSchedule) {
 		return (
-			<div className="web-page-panel max-w-2xl">
-				<ManualRunView
-					isRunning={isRunning || runNowMutation.isPending}
-					onRunNow={handleRunNow}
-					mode="local"
-				/>
+			<div className="web-page-panel flex justify-center">
+				<div className="w-full max-w-2xl">
+					<ManualRunView
+						isRunning={isRunning || runNowMutation.isPending}
+						onRunNow={handleRunNow}
+						mode="local"
+					/>
+				</div>
 			</div>
 		);
 	}
