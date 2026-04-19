@@ -143,7 +143,7 @@ function ManualRunView({
 				</p>
 				{mode === "local" ? (
 					<p className={cn(formHintClassName, "mt-1")}>
-						Recurring schedules are available in self-host and cloud mode.
+						Recurring schedules are available in self-host mode.
 					</p>
 				) : null}
 			</div>

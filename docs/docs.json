@@ -14,6 +14,7 @@
 		"pages": [
 			"introduction",
 			"getting-started",
+			"vps-deployment",
 			"environment-variables",
 			"troubleshooting",
 			"api-reference"

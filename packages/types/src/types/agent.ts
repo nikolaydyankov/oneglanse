@@ -19,7 +19,7 @@ export const PROVIDER_LIST = [
 
 export type Provider = (typeof PROVIDER_LIST)[number];
 
-export const APP_MODE_LIST = ["cloud", "self-host", "local"] as const;
+export const APP_MODE_LIST = ["self-host", "local"] as const;
 
 export type AppMode = (typeof APP_MODE_LIST)[number];
 
@@ -28,7 +28,7 @@ export function resolveAppMode(rawMode?: string | null): AppMode {
 		return rawMode;
 	}
 
-	return "cloud";
+	return "self-host";
 }
 
 export function canAccessScheduleInMode(appMode: AppMode): boolean {
@@ -39,16 +39,16 @@ export function canAccessPeopleInMode(appMode: AppMode): boolean {
 	return appMode !== "local";
 }
 
-export function canAccessProvidersInMode(appMode: AppMode): boolean {
-	return appMode !== "cloud";
+export function canAccessProvidersInMode(_appMode: AppMode): boolean {
+	return true;
 }
 
 export function canConfigureRecurringScheduleInMode(appMode: AppMode): boolean {
 	return appMode !== "local";
 }
 
-export function canRunPromptsNowInMode(appMode: AppMode): boolean {
-	return appMode !== "cloud";
+export function canRunPromptsNowInMode(_appMode: AppMode): boolean {
+	return true;
 }
 
 export function shouldUseProxyInMode(appMode: AppMode): boolean {
