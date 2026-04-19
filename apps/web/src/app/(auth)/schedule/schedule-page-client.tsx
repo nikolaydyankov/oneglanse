@@ -479,7 +479,7 @@ export default function SchedulePageClient({
 
 	if (!canConfigureSchedule) {
 		return (
-			<div className="web-page-panel flex justify-center">
+			<div className="web-centered-state">
 				<div className="w-full max-w-2xl">
 					<ManualRunView
 						isRunning={isRunning || runNowMutation.isPending}
