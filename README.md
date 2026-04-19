@@ -12,7 +12,7 @@ OneGlanse monitors how your brand appears inside real AI products — ChatGPT, G
 
 **You use your own provider accounts.** OneGlanse authenticates to ChatGPT, Gemini, Perplexity, Claude, and Google using your own existing logins. No shared credentials. No scraped accounts. Your sessions, stored locally.
 
-[App](https://app.oneglanse.com) · [Docs](https://docs.oneglanse.com) · [oneglanse.com](https://oneglanse.com)
+[Docs](https://docs.oneglanse.com) · [oneglanse.com](https://oneglanse.com)
 
 ---
 
