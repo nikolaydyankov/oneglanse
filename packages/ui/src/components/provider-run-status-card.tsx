@@ -43,6 +43,7 @@ export function ProviderRunStatusCard(props: {
 
 	const showProgress =
 		phase === "running" &&
+		!isStopping &&
 		promptNumber !== undefined &&
 		totalPrompts !== undefined &&
 		totalPrompts > 0;
@@ -54,6 +55,7 @@ export function ProviderRunStatusCard(props: {
 	function getSubtitle() {
 		if (phase === "pending") return "Queued — waiting to start";
 		if (phase === "running") {
+			if (isStopping) return "Canceling prompts…";
 			if (showProgress) {
 				return `Prompt ${promptNumber} of ${totalPrompts}`;
 			}

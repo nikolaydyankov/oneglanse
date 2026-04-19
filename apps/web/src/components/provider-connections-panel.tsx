@@ -137,12 +137,20 @@ export function ProviderConnectionsPanel(props: {
 	const toggleDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	useEffect(() => {
-		if (localEnabled === undefined && enabledProvidersQuery.data !== undefined) {
+		if (
+			localEnabled === undefined &&
+			enabledProvidersQuery.data !== undefined &&
+			!enabledProvidersQuery.isFetching
+		) {
 			setLocalEnabled(enabledProvidersQuery.data.enabledProviders ?? null);
 		}
-	}, [enabledProvidersQuery.data, localEnabled]);
+	}, [enabledProvidersQuery.data, enabledProvidersQuery.isFetching, localEnabled]);
 
+	const utils = api.useUtils();
 	const setEnabledMutation = api.workspace.setEnabledProviders.useMutation({
+		onSuccess: () => {
+			void utils.workspace.getEnabledProviders.invalidate({ workspaceId: workspaceId! });
+		},
 		onError: () => {
 			// Revert to server state on error
 			setLocalEnabled(enabledProvidersQuery.data?.enabledProviders ?? null);
