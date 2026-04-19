@@ -10,6 +10,7 @@ import { getPostProvidersContinuePath } from "@/lib/auth/redirect";
 import { useSafeSearchParams } from "@/lib/navigation/use-safe-search-params";
 import { useProviderConnections } from "@/lib/provider-connections/client";
 import {
+	SKIP_PROVIDER_GATE_EVENT,
 	readSkipProviderGate,
 	writeSkipProviderGate,
 } from "@/lib/provider-connections/provider-gate";
@@ -219,6 +220,26 @@ export default function LayoutContent({
 
 	useEffect(() => {
 		setHasSkippedProviderGate(readSkipProviderGate());
+
+		const handleSkipProviderGateChange = (event: Event) => {
+			const nextValue =
+				event instanceof CustomEvent && typeof event.detail?.value === "boolean"
+					? event.detail.value
+					: readSkipProviderGate();
+			setHasSkippedProviderGate(nextValue);
+		};
+
+		window.addEventListener(
+			SKIP_PROVIDER_GATE_EVENT,
+			handleSkipProviderGateChange,
+		);
+
+		return () => {
+			window.removeEventListener(
+				SKIP_PROVIDER_GATE_EVENT,
+				handleSkipProviderGateChange,
+			);
+		};
 	}, []);
 
 	useEffect(() => {

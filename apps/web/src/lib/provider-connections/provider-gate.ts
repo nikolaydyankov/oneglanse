@@ -1,4 +1,5 @@
 const SKIP_PROVIDER_GATE_STORAGE_KEY = "oneglanse.skip-provider-gate";
+export const SKIP_PROVIDER_GATE_EVENT = "oneglanse:skip-provider-gate";
 
 export function readSkipProviderGate(): boolean {
 	if (typeof window === "undefined") {
@@ -15,8 +16,14 @@ export function writeSkipProviderGate(value: boolean): void {
 
 	if (value) {
 		window.sessionStorage.setItem(SKIP_PROVIDER_GATE_STORAGE_KEY, "1");
+		window.dispatchEvent(
+			new CustomEvent(SKIP_PROVIDER_GATE_EVENT, { detail: { value: true } }),
+		);
 		return;
 	}
 
 	window.sessionStorage.removeItem(SKIP_PROVIDER_GATE_STORAGE_KEY);
+	window.dispatchEvent(
+		new CustomEvent(SKIP_PROVIDER_GATE_EVENT, { detail: { value: false } }),
+	);
 }

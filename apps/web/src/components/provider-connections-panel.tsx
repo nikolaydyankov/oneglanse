@@ -488,18 +488,7 @@ export function ProviderConnectionsPanel(props: {
 			</div>
 
 			{nextHref ? (
-				<div className="mt-6 flex items-center justify-between gap-3">
-					<Button
-						variant="ghost"
-						onClick={() => setShowSkipDialog(true)}
-						disabled={isAnyConnectionPending}
-						className={cn(
-							formSecondaryButtonClassName,
-							"h-10 border border-gray-200/80 bg-white px-3.5 text-[11px] text-gray-600 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_18px_-14px_rgba(15,23,42,0.12)] hover:bg-stone-50 hover:text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-300 dark:hover:bg-gray-900 dark:hover:text-gray-100",
-						)}
-					>
-						Skip for now
-					</Button>
+				<div className="mt-6 flex items-center justify-end gap-3">
 					{hasAtLeastOneConnection ? (
 						<Button
 							variant="default"
@@ -509,9 +498,18 @@ export function ProviderConnectionsPanel(props: {
 						>
 							Next
 						</Button>
-					) : (
-						<div />
-					)}
+					) : null}
+					<Button
+						variant="ghost"
+						onClick={() => setShowSkipDialog(true)}
+						disabled={isAnyConnectionPending}
+						className={cn(
+							formPrimaryButtonClassName,
+							"h-10 w-auto px-3.5 text-[11px]",
+						)}
+					>
+						Skip for now
+					</Button>
 				</div>
 			) : null}
 
