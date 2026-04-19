@@ -70,16 +70,15 @@ export function LoginForm({
 		const { error } = await authClient.signIn.email({
 			email: values.email,
 			password: values.password,
-			callbackURL: postAuthRedirectPath,
 		});
 
 		if (error) {
 			toast.error(error.message ?? "Failed to sign in.");
-		} else {
-			toast.success("Signed in successfully!");
+			setIsLoading(false);
+			return;
 		}
 
-		setIsLoading(false);
+		window.location.href = postAuthRedirectPath;
 	}
 
 	return (
