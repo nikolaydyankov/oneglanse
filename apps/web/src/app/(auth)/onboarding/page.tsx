@@ -12,7 +12,6 @@ import {
 	persistActiveProviderRun,
 } from "@/components/provider-run-toast";
 import { useSafeSearchParams } from "@/lib/navigation/use-safe-search-params";
-import { useProviderConnections } from "@/lib/provider-connections/client";
 import { api } from "@/trpc/react";
 import {
 	Button,
@@ -82,7 +81,6 @@ export default function FirstWorkspaceOnboardingPage() {
 		{ workspaceId },
 		{ enabled: !!workspaceId },
 	);
-	const providerConnectionsQuery = useProviderConnections();
 	const storePrompts = api.prompt.store.useMutation();
 	const runAgent = api.agent.run.useMutation();
 
@@ -170,9 +168,6 @@ export default function FirstWorkspaceOnboardingPage() {
 			if (
 				!handleAgentRunResult(run, {
 					onDone: () => setIsStartingRun(false),
-					providerDisplayNames: providerConnectionsQuery.data?.cards
-						.filter((card) => !card.status.connected)
-						.map((card) => card.displayName),
 				})
 			) {
 				return;

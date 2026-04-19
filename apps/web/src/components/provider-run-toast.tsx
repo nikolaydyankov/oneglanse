@@ -4,7 +4,6 @@ import { useSafeSearchParams } from "@/lib/navigation/use-safe-search-params";
 import { api } from "@/trpc/react";
 import { PROVIDER_LIST, type Provider } from "@oneglanse/types";
 import { ProviderRunStatusCard, toast } from "@oneglanse/ui";
-import { getProviderDisplayName } from "@oneglanse/utils";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -69,33 +68,8 @@ export function clearActiveProviderRun(): void {
 	window.dispatchEvent(new Event(ACTIVE_PROVIDER_RUN_EVENT));
 }
 
-function showAllProvidersDisabledToast() {
-	toast.error("All providers are disabled.", {
-		id: PROVIDER_RUN_TOAST_ID,
-		description:
-			"Enable at least one provider on the Providers page before running prompts.",
-	});
-}
-
-function showDisconnectedProvidersToast(args: {
-	disconnectedProviders?: string[];
-}) {
-	const providers = (args.disconnectedProviders ?? [])
-		.filter(Boolean)
-		.map((provider) => getProviderDisplayName(provider));
-	const description =
-		providers.length > 0
-			? `Connect at least one provider to continue. Missing: ${providers.join(", ")}.`
-			: "Connect at least one provider to continue.";
-
-	toast.error("Providers are not connected.", {
-		id: PROVIDER_RUN_TOAST_ID,
-		description,
-	});
-}
-
 /**
- * Handles all non-success agent run result states with appropriate toasts.
+ * Handles all non-success agent run result states.
  * Call this after every `api.agent.run.mutateAsync` call.
  *
  * Returns `true` if the run was queued successfully (caller should proceed).
@@ -105,35 +79,13 @@ export function handleAgentRunResult(
 	result: {
 		status: string;
 		jobId?: string | null;
-		disconnectedProviders?: string[];
 	},
 	options: {
-		/** Called when the result is not a successful queue (after showing any toast). */
+		/** Called when the result is not a successful queue. */
 		onDone: () => void;
-		/** Provider display names for the disconnected toast fallback. */
-		providerDisplayNames?: string[];
 	},
 ): result is { status: "queued"; jobId: string } {
-	const { onDone, providerDisplayNames } = options;
-
-	if (result.status === "all-disabled") {
-		clearActiveProviderRun();
-		showAllProvidersDisabledToast();
-		onDone();
-		return false;
-	}
-
-	if (result.status === "no-providers") {
-		clearActiveProviderRun();
-		showDisconnectedProvidersToast({
-			disconnectedProviders:
-				(result.disconnectedProviders ?? []).length > 0
-					? result.disconnectedProviders
-					: providerDisplayNames,
-		});
-		onDone();
-		return false;
-	}
+	const { onDone } = options;
 
 	if (result.status !== "queued" || !result.jobId) {
 		clearActiveProviderRun();

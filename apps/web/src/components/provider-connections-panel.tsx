@@ -18,6 +18,7 @@ import { AUTH_PROVIDER_LIST } from "@oneglanse/types";
 import type { AuthProvider } from "@oneglanse/types";
 import { CheckCircle2, Loader2, RotateCcw, RotateCw } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 
 const CARD_ORDER: Array<ProviderConnectionCard["provider"]> = [
 	"google",
@@ -134,43 +135,51 @@ export function ProviderConnectionsPanel(props: {
 		{ workspaceId: workspaceId! },
 		{ enabled: !!workspaceId },
 	);
+
+	// Local state for instant toggle feedback — synced from server on first load
+	const [localEnabled, setLocalEnabled] = useState<AuthProvider[] | null | undefined>(undefined);
+	const toggleDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+	useEffect(() => {
+		if (localEnabled === undefined && enabledProvidersQuery.data !== undefined) {
+			setLocalEnabled(enabledProvidersQuery.data.enabledProviders ?? null);
+		}
+	}, [enabledProvidersQuery.data, localEnabled]);
+
 	const setEnabledMutation = api.workspace.setEnabledProviders.useMutation({
 		onError: () => {
+			// Revert to server state on error
+			setLocalEnabled(enabledProvidersQuery.data?.enabledProviders ?? null);
 			toast.error("Failed to update provider. Please try again.");
-		},
-		onSettled: () => {
-			void enabledProvidersQuery.refetch();
 		},
 	});
 
 	const isProviderEnabled = (provider: AuthProvider): boolean => {
-		if (setEnabledMutation.isPending && setEnabledMutation.variables) {
-			const pending = setEnabledMutation.variables.enabledProviders;
-			return pending === null || pending.includes(provider);
-		}
-		const server = enabledProvidersQuery.data?.enabledProviders ?? null;
-		return server === null || server.includes(provider);
+		const state = localEnabled !== undefined ? localEnabled : (enabledProvidersQuery.data?.enabledProviders ?? null);
+		return state === null || state.includes(provider);
 	};
 
 	const handleProviderToggle = (provider: AuthProvider) => {
 		if (!workspaceId) return;
-		const serverEnabled = enabledProvidersQuery.data?.enabledProviders ?? null;
-		const serverList =
-			serverEnabled === null ? ([...AUTH_PROVIDER_LIST] as AuthProvider[]) : serverEnabled;
-		const currentlyEnabled = serverEnabled === null || serverEnabled.includes(provider);
+		const currentState = localEnabled !== undefined ? localEnabled : (enabledProvidersQuery.data?.enabledProviders ?? null);
+		const currentList = currentState === null ? ([...AUTH_PROVIDER_LIST] as AuthProvider[]) : currentState;
+		const currentlyEnabled = currentState === null || currentState.includes(provider);
 
+		let next: AuthProvider[] | null;
 		if (currentlyEnabled) {
-			const remaining = serverList.filter((p) => p !== provider);
-			if (remaining.length === 0) {
-				toast.error("At least one provider must be enabled.");
-				return;
-			}
-			setEnabledMutation.mutate({ workspaceId, enabledProviders: remaining });
+			const remaining = currentList.filter((p) => p !== provider);
+			next = remaining as AuthProvider[];
 		} else {
-			const nextList = [...serverList, provider] as AuthProvider[];
-			const next = nextList.length === AUTH_PROVIDER_LIST.length ? null : nextList;
-			setEnabledMutation.mutate({ workspaceId, enabledProviders: next });
+			const nextList = [...currentList, provider] as AuthProvider[];
+			next = nextList.length === AUTH_PROVIDER_LIST.length ? null : nextList;
 		}
+
+		setLocalEnabled(next);
+
+		if (toggleDebounceRef.current) clearTimeout(toggleDebounceRef.current);
+		toggleDebounceRef.current = setTimeout(() => {
+			setEnabledMutation.mutate({ workspaceId, enabledProviders: next });
+		}, 300);
 	};
 
 	const providerActionMutation = useProviderConnectionAction({

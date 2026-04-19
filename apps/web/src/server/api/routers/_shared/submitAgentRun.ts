@@ -3,7 +3,6 @@ import { submitAgentJobGroup } from "@oneglanse/services";
 export type SubmitAgentRunResult =
 	| { jobId: string; status: "queued" }
 	| { jobId: null; status: "empty" }
-	| { jobId: null; status: "all-disabled" }
 	| { jobId: null; status: "no-providers"; disconnectedProviders: string[] };
 
 export async function submitAgentRun(args: {
@@ -14,10 +13,6 @@ export async function submitAgentRun(args: {
 
 	if (result.status === "empty") {
 		return { jobId: null, status: "empty" };
-	}
-
-	if (result.status === "all-disabled") {
-		return { jobId: null, status: "all-disabled" };
 	}
 
 	if (result.status === "no-providers") {
