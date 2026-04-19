@@ -16,7 +16,7 @@ export function SiteHeader(): React.JSX.Element {
 					<img
 						src="/logo.png"
 						alt="OneGlanse"
-						className="h-6 w-6 rounded-lg object-contain"
+						className="h-6 w-auto rounded-lg object-contain"
 					/>
 					OneGlanse
 				</a>

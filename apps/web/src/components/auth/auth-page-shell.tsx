@@ -16,7 +16,7 @@ export function AuthPageShell({
 					<img
 						src="/logo.png"
 						alt="OneGlanse"
-						className="h-12 w-12 rounded-2xl object-contain"
+						className="h-12 w-auto rounded-2xl object-contain"
 					/>
 					<div className="space-y-1 text-center">
 						<div className="text-[1.4rem] font-semibold tracking-[-0.05em] text-gray-950 sm:text-[1.75rem] lg:text-[1.9rem] xl:text-[2rem] dark:text-gray-50">
