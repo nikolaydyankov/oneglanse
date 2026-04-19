@@ -37,8 +37,9 @@ const formSchema = z.object({
 
 export function SignupForm({
 	className,
+	showGoogle = false,
 	...props
-}: React.ComponentProps<"div">) {
+}: React.ComponentProps<"div"> & { showGoogle?: boolean }) {
 	const searchParams = useSearchParams();
 	const [isLoading, setIsLoading] = useState(false);
 	const rawNext = searchParams?.get("next");
@@ -90,7 +91,7 @@ export function SignupForm({
 			switchText="Already have an account?"
 			switchLabel="Log in"
 			switchHref={loginHref}
-			onGoogleClick={signInWithGoogle}
+			onGoogleClick={showGoogle ? signInWithGoogle : undefined}
 			className={className}
 			{...props}
 		>

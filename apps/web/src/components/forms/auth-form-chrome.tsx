@@ -16,11 +16,11 @@ import { FcGoogle } from "react-icons/fc";
 type AuthFormChromeProps = React.ComponentProps<"div"> & {
 	title?: string;
 	description?: string;
-	googleLabel: string;
+	googleLabel?: string;
 	switchText: string;
 	switchLabel: string;
 	switchHref: string;
-	onGoogleClick: () => void | Promise<void>;
+	onGoogleClick?: () => void | Promise<void>;
 	children: ReactNode;
 };
 
@@ -138,23 +138,27 @@ export function AuthFormChrome({
 				) : null}
 				<CardContent className="px-4 py-3.25 sm:px-4.5 sm:py-3.75 lg:px-5 lg:py-4.25 xl:px-6 xl:py-5">
 					<div className="grid min-w-0 gap-2 sm:gap-2.25 lg:gap-2.5 xl:gap-3">
-						<Button
-							variant="outline"
-							className={cn(
-								formSecondaryButtonClassName,
-								"w-full justify-center text-sm font-medium xl:text-[15px]",
-							)}
-							type="button"
-							onClick={onGoogleClick}
-						>
-							<FcGoogle className="h-4 w-4" />
-							{googleLabel}
-						</Button>
-						<div className="relative py-1.5 text-center text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-border after:border-t xl:py-2 xl:text-[11px]">
-							<span className="relative z-10 bg-white px-3 dark:bg-neutral-950">
-								Or continue with
-							</span>
-						</div>
+						{onGoogleClick ? (
+							<>
+								<Button
+									variant="outline"
+									className={cn(
+										formSecondaryButtonClassName,
+										"w-full justify-center text-sm font-medium xl:text-[15px]",
+									)}
+									type="button"
+									onClick={onGoogleClick}
+								>
+									<FcGoogle className="h-4 w-4" />
+									{googleLabel}
+								</Button>
+								<div className="relative py-1.5 text-center text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-border after:border-t xl:py-2 xl:text-[11px]">
+									<span className="relative z-10 bg-white px-3 dark:bg-neutral-950">
+										Or continue with
+									</span>
+								</div>
+							</>
+						) : null}
 						{children}
 						<div className="text-center text-[10px] text-muted-foreground sm:text-[11px] lg:text-[12px] xl:text-[13px]">
 							{switchText}{" "}
