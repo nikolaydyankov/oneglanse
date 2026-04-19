@@ -8,10 +8,6 @@ import { Geist } from "next/font/google";
 export const metadata: Metadata = {
 	title: "OneGlanse",
 	description: "The open-source GEO & AI Visibility Platform",
-	icons: {
-		icon: "/logo.png",
-		apple: "/logo.png",
-	},
 };
 
 const geist = Geist({
