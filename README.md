@@ -100,14 +100,14 @@ For VPS deployment, recurring scheduling, provider auth transfer, and all config
 
 OneGlanse is built around collecting responses from the real logged-in chat interfaces of ChatGPT, Gemini, Perplexity, Claude, and Google. That means the product depends on authenticated browser sessions tied to your own provider accounts.
 
-We do try to make logged-out collection work where possible, but logged-out sessions are materially worse for GEO tracking:
+OneGlanse does not use logged-out sessions for GEO tracking because logged-out experiences are materially worse for measuring what real users actually see:
 
 - they are more likely to trigger bot detection or rate limits
 - they often return shorter, stripped-down answers
 - they frequently hide or reduce citations and source cards
 - they can gate richer UI features behind login
 
-That matters because GEO is not just about "did the model mention me". It is also about how your brand is framed, which competitors are shown beside you, and which sources the product actually surfaces to users. Logged-out experiences are often thinner and less representative of what real signed-in users see.
+That matters because GEO is not just about "did the model mention me". It is also about how your brand is framed, which competitors are shown beside you, and which sources the product actually surfaces to users. Logged-out experiences are thinner and less representative of what real signed-in users see.
 
 That is why we do not offer a hosted cloud product with shared sessions. OneGlanse is designed to run with your own accounts, your own browser sessions, your own proxy setup when needed, and your own infrastructure. It is the more reliable and more accurate way to measure AI visibility without pretending API output or stripped-down logged-out pages are equivalent to the real user experience.
 
