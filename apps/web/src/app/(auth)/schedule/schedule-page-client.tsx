@@ -479,7 +479,7 @@ const [selected, setSelected] = useState<string | null>(null);
 	if (!canConfigureSchedule) {
 		return (
 			<div className="web-centered-state">
-				<div className="w-full max-w-2xl">
+				<div className="w-full max-w-xs">
 					<ManualRunView
 						isRunning={isRunning || runNowMutation.isPending}
 						onRunNow={handleRunNow}

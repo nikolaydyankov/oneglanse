@@ -29,7 +29,7 @@ import {
 	toast,
 } from "@oneglanse/ui";
 import { cn, getModelFavicon } from "@oneglanse/utils";
-import { CheckCircle2, Loader2, RotateCcw, RotateCw } from "lucide-react";
+import { ArrowRight, CheckCircle2, Loader2, RotateCcw, RotateCw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
@@ -326,7 +326,7 @@ export function ProviderConnectionsPanel(props: {
 				</p>
 			) : null}
 
-			<div className="grid grid-cols-1 gap-3 lg:grid-cols-2 lg:gap-3">
+			<div className="grid grid-cols-1 gap-3 lg:grid-cols-2 lg:items-start lg:gap-3">
 				{cards.map((card) => {
 					const status = card.status;
 					const { isPendingForProvider, isPendingConnect, isPendingRefresh } =
@@ -451,7 +451,7 @@ export function ProviderConnectionsPanel(props: {
 										</Button>
 									) : null}
 
-									{workspaceId ? (
+									{workspaceId && isConnected ? (
 										<div className="ml-0.5 flex items-center gap-2">
 											<button
 												type="button"
@@ -497,6 +497,7 @@ export function ProviderConnectionsPanel(props: {
 							disabled={isAnyConnectionPending}
 						>
 							Next
+							<ArrowRight className="h-4 w-4" />
 						</Button>
 					) : null}
 					<Button
@@ -504,7 +505,7 @@ export function ProviderConnectionsPanel(props: {
 						onClick={() => setShowSkipDialog(true)}
 						disabled={isAnyConnectionPending}
 						className={cn(
-							formPrimaryButtonClassName,
+							formSecondaryButtonClassName,
 							"h-10 w-auto px-3.5 text-[11px]",
 						)}
 					>

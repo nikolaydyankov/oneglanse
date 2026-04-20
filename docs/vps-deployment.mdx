@@ -3,7 +3,27 @@ title: VPS Deployment
 description: Deploy OneGlanse on your own VPS with nginx, SSL, and automatic provider auth — step by step with copy-paste commands.
 ---
 
-# VPS Deployment
+## Interactive setup (recommended)
+
+If you're on Ubuntu 22.04 / 24.04, the setup script handles everything — dependencies, repo clone, `.env` config, nginx, SSL, and firewall — in one session:
+
+```bash
+# On your VPS (as a non-root user with sudo privileges):
+curl -fsSL https://raw.githubusercontent.com/aryamantodkar/oneglanse/main/scripts/setup-vps.sh | bash
+```
+
+Or clone first and run locally:
+
+```bash
+git clone https://github.com/aryamantodkar/oneglanse /tmp/oneglanse
+bash /tmp/oneglanse/scripts/setup-vps.sh
+```
+
+The script is interactive — it asks for your domain, LLM key, proxy URL, and auth token, then does the rest.
+
+---
+
+## Manual setup
 
 This guide deploys OneGlanse on a fresh Ubuntu 22.04 / 24.04 VPS. At the end you'll have:
 

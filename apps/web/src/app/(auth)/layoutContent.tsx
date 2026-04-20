@@ -180,10 +180,10 @@ export default function LayoutContent({
 	const hasAtLeastOneConnection =
 		authProvidersQuery.data?.cards.some((card) => card.status.connected) ??
 		false;
-	const shouldShowConnectionGate =
-		!hasAtLeastOneConnection && !hasSkippedProviderGate;
 	const canLaunchProvidersLocally = isInteractiveAuthAllowedInMode(appMode);
 	const isProvidersPage = pathname === "/providers";
+	const shouldShowConnectionGate =
+		!hasAtLeastOneConnection && !hasSkippedProviderGate && !isProvidersPage;
 	const isWorkspaceSetupPage = pathname?.startsWith("/workspace") ?? false;
 	const isPeoplePage = pathname?.startsWith("/people") ?? false;
 	const pageHeader = getPageHeader(pathname);
