@@ -21,7 +21,6 @@ import type {
 	AnalysisRecord,
 	DomainStats,
 	GroupedSource,
-	Source,
 	SourceExcerpt,
 } from "@oneglanse/types";
 import {
@@ -36,14 +35,46 @@ import {
 	toast,
 } from "@oneglanse/ui";
 import {
-	buildAnalysisCsvRow,
+	buildDetailedAnalysisCsvRow,
 	getUniqueModelProviders,
 	joinCitedTexts,
 } from "@oneglanse/utils";
 import { cn } from "@oneglanse/utils";
 import { Download, Loader2 } from "lucide-react";
 import { useState } from "react";
+import { useDashboardData } from "../dashboard/_hooks/use-dashboard-data";
+import type { DashboardMetrics } from "../dashboard/_utils/types";
 import { useLayoutUserEmail } from "../workspace-context";
+
+function getWorkspaceActionPriorities(
+	metrics: DashboardMetrics,
+	promptCount: number,
+): string[] {
+	const priorities = [
+		metrics.aggregateStats.presenceRate < 70
+			? "Increase brand mention frequency across high-intent prompts."
+			: null,
+		(metrics.avgRank.position ?? 99) > 3
+			? "Improve ranking consistency by strengthening comparison-oriented messaging."
+			: null,
+		metrics.impactMetrics.topPickRate < 35
+			? "Raise top-pick conversion with stronger differentiators and proof points."
+			: null,
+		metrics.impactMetrics.criticalRiskCount > 0
+			? "Resolve critical risk signals found in model answers."
+			: null,
+		promptCount < 5
+			? "Add more prompts to improve coverage across buyer intent categories."
+			: null,
+		metrics.totalCitations === 0
+			? "No citations captured yet. Publish authoritative content for AI models to reference."
+			: null,
+	].filter((priority): priority is string => priority !== null);
+
+	return priorities.length > 0
+		? priorities
+		: ["Maintain current trajectory and scale winning prompt themes."];
+}
 
 export default function SettingsPage() {
 	const searchParams = useSafeSearchParams();
@@ -72,6 +103,20 @@ export default function SettingsPage() {
 	const sourcesQuery = api.prompt.fetchPromptSources.useQuery(
 		{ workspaceId },
 		{ enabled: !!workspaceId },
+	);
+	const workspaceQuery = api.workspace.getById.useQuery(
+		{ workspaceId },
+		{ enabled: !!workspaceId },
+	);
+
+	const dashboardMetrics = useDashboardData(
+		Array.isArray(analysisQuery.data) ? analysisQuery.data : [],
+		"All Models",
+		"all",
+		{
+			name: workspaceQuery.data?.name,
+			domain: workspaceQuery.data?.domain,
+		},
 	);
 
 	// Delete account handler
@@ -105,6 +150,7 @@ export default function SettingsPage() {
 		const domainStats = Array.isArray(domainStatsRaw)
 			? domainStatsRaw
 			: (domainStatsRaw?.combined ?? []);
+		const m = dashboardMetrics;
 
 		const citationRows = combinedSources.flatMap((source: GroupedSource) =>
 			(source.excerpts ?? []).map((excerpt: SourceExcerpt) => ({
@@ -116,11 +162,43 @@ export default function SettingsPage() {
 			})),
 		);
 		const analysisRecords = Array.isArray(analysisData) ? analysisData : [];
+		const analysisMetricRows = analysisRecords.map((record: AnalysisRecord) =>
+			buildDetailedAnalysisCsvRow(record),
+		);
+		const promptRows = userPrompts.map((prompt) => ({
+			promptId: prompt.id,
+			prompt: prompt.prompt,
+			createdAt: prompt.created_at,
+		}));
+		const sourceRows = combinedSources.map((source: GroupedSource) => {
+			const models = getUniqueModelProviders(source.excerpts ?? []);
+
+			return {
+				url: source.url,
+				title: source.title,
+				totalCitations: source.totalSources ?? 0,
+				modelCount: models.length,
+				models,
+				excerptCount: source.excerpts?.length ?? 0,
+				citedTexts: joinCitedTexts(source.excerpts ?? []),
+			};
+		});
+		const dashboardSourceRows = m.sourcesIntelligence.map((source) => ({
+			domain: source.domain,
+			favicon: source.favicon,
+			citationCount: source.citationCount,
+			uniqueRecordCount: source.uniqueRecords.size,
+			modelCount: source.models.size,
+			models: [...source.models],
+			uniqueRecords: [...source.uniqueRecords],
+		}));
+		const actionPriorities = getWorkspaceActionPriorities(
+			m,
+			userPrompts.length,
+		);
 
 		downloadJson(`workspace-all-${workspaceId}-${Date.now()}.json`, {
 			generatedAt: new Date().toISOString(),
-			workspace: null,
-			organization: null,
 			report: {
 				title: "Workspace AI Visibility Export",
 				version: "2.0",
@@ -131,19 +209,35 @@ export default function SettingsPage() {
 				sourceUrlCount: combinedSources.length,
 				citationCount: citationRows.length,
 			},
+			metrics: {
+				dashboard: {
+					brandName: m.brandName,
+					brandDomain: m.brandDomain,
+					avgRank: m.avgRank,
+					avgSentiment: m.avgSentiment,
+					impactMetrics: m.impactMetrics,
+					aggregateStats: m.aggregateStats,
+					totalCitations: m.totalCitations,
+				},
+				brandPerception: m.brandPerception,
+				competitors: m.competitorData,
+				citationSources: dashboardSourceRows,
+				sourceDomains: domainStats,
+				actionPriorities,
+			},
 			exports: {
 				dashboard: {
 					analysisCount: analysisRecords.length,
-					records: analysisRecords,
+					records: analysisMetricRows,
 				},
 				prompts: {
 					promptCount: userPrompts.length,
-					prompts: userPrompts,
-					analyses: analysisData,
+					prompts: promptRows,
+					analyses: analysisMetricRows,
 				},
 				sources: {
 					domainStats,
-					groupedSources: combinedSources,
+					groupedSources: sourceRows,
 					citations: citationRows,
 				},
 			},
@@ -161,13 +255,15 @@ export default function SettingsPage() {
 		const domainStats = Array.isArray(domainStatsRaw)
 			? domainStatsRaw
 			: (domainStatsRaw?.combined ?? []);
+		const m = dashboardMetrics;
+		const actionPriorities = getWorkspaceActionPriorities(
+			m,
+			userPrompts.length,
+		);
 
 		const rows: Array<Record<string, unknown>> = [
-			{
-				section: "overview",
-				metric: "Prompts",
-				value: userPrompts.length,
-			},
+			// Overview
+			{ section: "overview", metric: "Prompts", value: userPrompts.length },
 			{
 				section: "overview",
 				metric: "Analysis Records",
@@ -187,30 +283,143 @@ export default function SettingsPage() {
 					0,
 				),
 			},
+			// Prompt inventory
 			...userPrompts.map((prompt) => ({
-				section: "prompt_definitions",
+				section: "prompt_inventory",
 				prompt_id: prompt.id,
 				prompt: prompt.prompt,
 				created_at: prompt.created_at,
 			})),
-			...analysisData.map((record: AnalysisRecord) => ({
-				prompt_id: record.prompt_id,
-				...buildAnalysisCsvRow(record, "analysis_metrics"),
+			// Aggregate metrics
+			{
+				section: "aggregate_metrics",
+				metric: "Total Responses",
+				value: m.impactMetrics.totalResponses,
+			},
+			{
+				section: "aggregate_metrics",
+				metric: "Presence Rate",
+				value: `${m.aggregateStats.presenceRate}%`,
+			},
+			{
+				section: "aggregate_metrics",
+				metric: "Avg Rank",
+				value: m.avgRank.position ?? "N/A",
+			},
+			{
+				section: "aggregate_metrics",
+				metric: "Recommendation Rate",
+				value: `${m.impactMetrics.recommendationRate}%`,
+			},
+			{
+				section: "aggregate_metrics",
+				metric: "Top Pick Rate",
+				value: `${m.impactMetrics.topPickRate}%`,
+			},
+			{
+				section: "aggregate_metrics",
+				metric: "Avg Sentiment",
+				value: m.avgSentiment.score,
+			},
+			{
+				section: "aggregate_metrics",
+				metric: "Avg Visibility",
+				value: `${m.impactMetrics.avgVisibility}%`,
+			},
+			{
+				section: "aggregate_metrics",
+				metric: "Critical Risks",
+				value: m.impactMetrics.criticalRiskCount,
+			},
+			{
+				section: "aggregate_metrics",
+				metric: "Top Competitor",
+				value: m.aggregateStats.topCompetitor,
+			},
+			{
+				section: "aggregate_metrics",
+				metric: "Top Competitor Domain",
+				value: m.aggregateStats.topCompetitorDomain ?? "",
+			},
+			{
+				section: "aggregate_metrics",
+				metric: "Total Citations",
+				value: m.totalCitations,
+			},
+			...actionPriorities.map((priority, index) => ({
+				section: "action_priorities",
+				priority: index + 1,
+				action: priority,
 			})),
+			// Brand perception
+			{
+				section: "brand_perception",
+				metric: "Best Known For",
+				value: m.brandPerception.bestKnownFor ?? "",
+			},
+			{
+				section: "brand_perception",
+				metric: "Pricing Perception",
+				value: m.brandPerception.pricingPerception,
+			},
+			{
+				section: "brand_perception",
+				metric: "Core Claims",
+				value: m.brandPerception.coreClaims.join(" | "),
+			},
+			{
+				section: "brand_perception",
+				metric: "Differentiators",
+				value: m.brandPerception.differentiators.join(" | "),
+			},
+			// Competitor table
+			...m.competitorData
+				.filter((c) => !c.isBrand)
+				.map((c) => ({
+					section: "competitors",
+					name: c.name,
+					domain: c.domain,
+					appearances: c.appearances,
+					visibility: c.visibility ?? "",
+					avg_rank: c.avgRank ?? "",
+					avg_sentiment: c.avgSentiment,
+					recommendation_count: c.recCount,
+				})),
+			// Citation source table
+			...m.sourcesIntelligence.map((s) => ({
+				section: "citation_sources",
+				domain: s.domain,
+				citation_count: s.citationCount,
+				unique_record_count: s.uniqueRecords.size,
+				model_count: s.models.size,
+				models: [...s.models].join(" | "),
+				unique_records: [...s.uniqueRecords].join(" | "),
+			})),
+			// Domain performance
 			...domainStats.map((domain: DomainStats) => ({
 				section: "source_domain_performance",
 				domain: domain.domain,
 				total_sources: domain.totalOccurrences,
+				source_text_count: domain.sourceTextCount,
 				percentage: domain.usedPercentageAcrossAllDomains,
+				avg_sources_per_domain: domain.avgSourcesPerDomain,
 			})),
-			...combinedSources.map((source: GroupedSource) => ({
-				section: "source_url_performance",
-				url: source.url,
-				title: source.title,
-				total_citations: source.totalSources ?? 0,
-				models: getUniqueModelProviders(source.excerpts ?? []).join(", "),
-				cited_texts: joinCitedTexts(source.excerpts ?? []),
-			})),
+			// URL performance
+			...combinedSources.map((source: GroupedSource) => {
+				const models = getUniqueModelProviders(source.excerpts ?? []);
+
+				return {
+					section: "source_url_performance",
+					url: source.url,
+					title: source.title,
+					total_citations: source.totalSources ?? 0,
+					model_count: models.length,
+					models: models.join(", "),
+					excerpt_count: source.excerpts?.length ?? 0,
+					cited_texts: joinCitedTexts(source.excerpts ?? []),
+				};
+			}),
+			// Source excerpts
 			...combinedSources.flatMap((source: GroupedSource) =>
 				(source.excerpts ?? []).map((excerpt: SourceExcerpt) => ({
 					section: "source_excerpts",
@@ -220,23 +429,10 @@ export default function SettingsPage() {
 					cited_text: excerpt.cited_text ?? "",
 				})),
 			),
-			...analysisData.flatMap((record: AnalysisRecord) =>
-				(record.sources ?? []).map((source: Source) => ({
-					section: "analysis_sources",
-					prompt_id: record.prompt_id,
-					model: record.model_provider,
-					source_title: source.title ?? "",
-					source_url: source.url ?? "",
-					source_domain: source.domain ?? "",
-					source_cited_text: source.cited_text ?? "",
-				})),
+			// Full per-record detail
+			...analysisData.map((record: AnalysisRecord) =>
+				buildDetailedAnalysisCsvRow(record),
 			),
-			...analysisData.map((record: AnalysisRecord) => ({
-				section: "analysis_full_json",
-				prompt_id: record.prompt_id,
-				model: record.model_provider,
-				brand_analysis_json: JSON.stringify(record.brand_analysis ?? {}),
-			})),
 		];
 
 		downloadCsv(`workspace-all-${workspaceId}-${Date.now()}.csv`, rows);

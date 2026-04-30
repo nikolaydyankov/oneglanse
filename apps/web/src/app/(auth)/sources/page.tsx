@@ -44,6 +44,12 @@ const SOURCES_METRIC_SKELETON_KEYS = [
 	"sources-metric-d",
 ] as const;
 
+function getSourceConcentrationRisk(topDomainShare: number): string {
+	if (topDomainShare >= 45) return "high";
+	if (topDomainShare >= 30) return "moderate";
+	return "healthy";
+}
+
 export default function SourcesPage(): React.JSX.Element {
 	const [selectedProvider, setSelectedProvider] =
 		useState<string>("All Models");
@@ -265,6 +271,9 @@ export default function SourcesPage(): React.JSX.Element {
 								className="w-full sm:w-auto"
 								disabled={!hasExportableData}
 								onExportJson={() => {
+									const concentrationRisk = getSourceConcentrationRisk(
+										metrics.topDomainShare,
+									);
 									const citationRows = domainGroups.flatMap((group) =>
 										group.urls.flatMap((source) =>
 											(source.excerpts ?? []).map((excerpt) => ({
@@ -294,12 +303,51 @@ export default function SourcesPage(): React.JSX.Element {
 												: 0,
 										urlCount: group.urlCount,
 									}));
-									const concentrationRisk =
-										metrics.topDomainShare >= 45
-											? "high"
-											: metrics.topDomainShare >= 30
-												? "moderate"
-												: "healthy";
+									const domainMetricRows = domainGroups.map((group) => ({
+										domain: group.domain,
+										totalCitations: group.totalCitations,
+										citationShare:
+											metrics.totalCitations > 0
+												? Number(
+														(
+															(group.totalCitations / metrics.totalCitations) *
+															100
+														).toFixed(1),
+													)
+												: 0,
+										urlCount: group.urlCount,
+										providerCount: group.providers.size,
+										providers: Array.from(group.providers),
+									}));
+									const urlMetricRows = displayedSources.map((source) => {
+										const models = getUniqueModelProviders(
+											source.excerpts ?? [],
+										);
+
+										return {
+											url: source.url,
+											urlPath: getUrlPath(source.url),
+											title: source.title,
+											domain: getDomain(source.url) || "",
+											totalCitations: source.totalSources ?? 0,
+											citationShare:
+												metrics.totalCitations > 0
+													? Number(
+															(
+																((source.totalSources ?? 0) /
+																	metrics.totalCitations) *
+																100
+															).toFixed(1),
+														)
+													: 0,
+											providerCount: models.length,
+											models,
+											excerptCount: source.excerpts?.length ?? 0,
+											citedTexts: joinCitedTexts(source.excerpts ?? [], {
+												clean: true,
+											}),
+										};
+									});
 
 									downloadJson(`sources-${workspaceId}-${Date.now()}.json`, {
 										generatedAt: new Date().toISOString(),
@@ -323,18 +371,16 @@ export default function SourcesPage(): React.JSX.Element {
 										leaderboards: { topDomains },
 										detailedData: {
 											aggregate: metrics,
-											domainGroups: domainGroups.map((group) => ({
-												domain: group.domain,
-												totalCitations: group.totalCitations,
-												urlCount: group.urlCount,
-												providers: Array.from(group.providers),
-											})),
-											sources: displayedSources,
+											domainGroups: domainMetricRows,
+											sources: urlMetricRows,
 											citations: citationRows,
 										},
 									});
 								}}
 								onExportCsv={() => {
+									const concentrationRisk = getSourceConcentrationRisk(
+										metrics.topDomainShare,
+									);
 									const rows = [
 										{
 											section: "overview",
@@ -356,11 +402,37 @@ export default function SourcesPage(): React.JSX.Element {
 											metric: "Top Domain Share",
 											value: `${metrics.topDomainShare}%`,
 										},
+										{
+											section: "overview",
+											metric: "Avg Citations Per URL",
+											value: metrics.avgCitationsPerUrl,
+										},
+										{
+											section: "overview",
+											metric: "Top Domain",
+											value: metrics.topDomain,
+										},
+										{
+											section: "overview",
+											metric: "Source Concentration Risk",
+											value: concentrationRisk,
+										},
 										...domainGroups.map((group) => ({
 											section: "domain_performance",
 											domain: group.domain,
 											total_citations: group.totalCitations,
+											citation_share:
+												metrics.totalCitations > 0
+													? Number(
+															(
+																(group.totalCitations /
+																	metrics.totalCitations) *
+																100
+															).toFixed(1),
+														)
+													: 0,
 											url_count: group.urlCount,
+											provider_count: group.providers.size,
 											providers: Array.from(group.providers).join(", "),
 										})),
 										...displayedSources.map((source) => ({
@@ -369,7 +441,18 @@ export default function SourcesPage(): React.JSX.Element {
 											url_path: getUrlPath(source.url),
 											title: source.title,
 											total_citations: source.totalSources ?? 0,
+											citation_share:
+												metrics.totalCitations > 0
+													? Number(
+															(
+																((source.totalSources ?? 0) /
+																	metrics.totalCitations) *
+																100
+															).toFixed(1),
+														)
+													: 0,
 											domain: getDomain(source.url) || "",
+											excerpt_count: source.excerpts?.length ?? 0,
 											models: getUniqueModelProviders(
 												source.excerpts ?? [],
 											).join(", "),
@@ -377,6 +460,22 @@ export default function SourcesPage(): React.JSX.Element {
 												clean: true,
 											}),
 										})),
+										...domainGroups.flatMap((group) =>
+											group.urls.flatMap((source) =>
+												(source.excerpts ?? []).map((excerpt) => ({
+													section: "source_citations",
+													domain: group.domain,
+													url: source.url,
+													url_path: getUrlPath(source.url),
+													title: source.title,
+													total_citations: source.totalSources ?? 0,
+													model_provider: excerpt.model_provider ?? "",
+													cited_text: excerpt.cited_text
+														? cleanCitedText(excerpt.cited_text)
+														: "",
+												})),
+											),
+										),
 									];
 									downloadCsv(`sources-${workspaceId}-${Date.now()}.csv`, rows);
 								}}

@@ -58,12 +58,11 @@ import {
 } from "@oneglanse/ui";
 import { PositionMetricCell, SentimentMetricCell } from "@oneglanse/ui";
 import {
+	buildDetailedAnalysisCsvRow,
 	filterAnalysisRecords,
 	formatDate,
 	formatMarkdown,
 	getModelFavicon,
-	joinCitedTexts,
-	joinSourceUrls,
 	modelSelectors,
 } from "@oneglanse/utils";
 import { cn } from "@oneglanse/utils";
@@ -128,6 +127,8 @@ export default function Prompts() {
 		resetSort: resetColumnSort,
 	} = useSortState<SortColumn>("prompt", "asc");
 	const [currentPrompt, setCurrentPrompt] = useState("");
+	const [bulkMode, setBulkMode] = useState(false);
+	const [bulkInput, setBulkInput] = useState("");
 	const [dialogOpen, setDialogOpen] = useState(false);
 	const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
 	const [loading, setLoading] = useState(false);
@@ -448,7 +449,9 @@ export default function Prompts() {
 			if (!currentPrompt.trim()) return;
 
 			const trimmedLower = currentPrompt.trim().toLowerCase();
-			if (promptData.some((p) => p.prompt.trim().toLowerCase() === trimmedLower)) {
+			if (
+				promptData.some((p) => p.prompt.trim().toLowerCase() === trimmedLower)
+			) {
 				toast.warning("This prompt already exists.");
 				return;
 			}
@@ -468,6 +471,49 @@ export default function Prompts() {
 			setDialogOpen(false);
 			void savePrompts(added);
 		}
+	};
+
+	const parseBulkPrompts = (raw: string): string[] => {
+		return raw
+			.split(/\n\s*\n/)
+			.map((s) => s.trim())
+			.filter(Boolean);
+	};
+
+	const handleAddBulkPrompts = () => {
+		const parsed = parseBulkPrompts(bulkInput);
+		if (parsed.length === 0) return;
+
+		const existingLower = new Set(
+			promptData.map((p) => p.prompt.trim().toLowerCase()),
+		);
+		const seen = new Set<string>();
+		const newPrompts: UserPrompt[] = [];
+
+		for (const text of parsed) {
+			const key = text.toLowerCase();
+			if (existingLower.has(key) || seen.has(key)) continue;
+			seen.add(key);
+			newPrompts.push({
+				id: crypto.randomUUID(),
+				created_at: new Date().toISOString(),
+				user_id: "",
+				workspace_id: workspaceId ?? "",
+				prompt: text,
+			});
+		}
+
+		if (newPrompts.length === 0) {
+			toast.warning("All prompts already exist.");
+			return;
+		}
+
+		const added = [...promptData, ...newPrompts];
+		setPromptData(added);
+		setBulkInput("");
+		setDialogOpen(false);
+		setBulkMode(false);
+		void savePrompts(added);
 	};
 
 	const toggleRow = (idx: number) => {
@@ -534,6 +580,8 @@ export default function Prompts() {
 						setEditIndex(null);
 						setEditPromptValue("");
 						setCurrentPrompt("");
+						setBulkMode(false);
+						setBulkInput("");
 					}
 				}}
 			>
@@ -549,38 +597,102 @@ export default function Prompts() {
 							"gap-5 pt-4 sm:gap-6 sm:pt-5",
 						)}
 					>
-						<div className="grid gap-2">
-							<Textarea
-								ref={promptTextareaRef}
-								placeholder={promptExample}
-								rows={2}
-								value={editIndex !== null ? editPromptValue : currentPrompt}
-								onChange={(e) => {
-									if (editIndex !== null) {
-										setEditPromptValue(e.target.value);
-									} else {
-										setCurrentPrompt(e.target.value);
-									}
+						{editIndex === null && (
+							<div className="flex rounded-[var(--app-radius)] border border-gray-200/60 bg-gray-50/80 p-0.5 dark:border-gray-800/60 dark:bg-gray-900/50">
+								<button
+									type="button"
+									onClick={() => setBulkMode(false)}
+									className={cn(
+										"flex-1 rounded-[calc(var(--app-radius)-2px)] px-3 py-1.5 text-[11px] font-medium transition-all sm:text-[12px]",
+										!bulkMode
+											? "bg-white text-gray-900 shadow-[0_1px_3px_rgba(15,23,42,0.08)] dark:bg-neutral-800 dark:text-gray-100"
+											: "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200",
+									)}
+								>
+									Single
+								</button>
+								<button
+									type="button"
+									onClick={() => setBulkMode(true)}
+									className={cn(
+										"flex-1 rounded-[calc(var(--app-radius)-2px)] px-3 py-1.5 text-[11px] font-medium transition-all sm:text-[12px]",
+										bulkMode
+											? "bg-white text-gray-900 shadow-[0_1px_3px_rgba(15,23,42,0.08)] dark:bg-neutral-800 dark:text-gray-100"
+											: "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200",
+									)}
+								>
+									Bulk
+								</button>
+							</div>
+						)}
 
-									requestAnimationFrame(syncPromptTextareaHeight);
-								}}
-								className={cn(
-									formTextareaClassName,
-									"min-h-[76px] max-h-[220px] resize-none overflow-hidden shadow-[0_1px_2px_rgba(15,23,42,0.05),0_16px_36px_-22px_rgba(15,23,42,0.18)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.16),0_18px_40px_-24px_rgba(0,0,0,0.46)]",
-								)}
-							/>
-						</div>
+						{bulkMode && editIndex === null ? (
+							<div className="grid gap-2.5">
+								<Textarea
+									placeholder={`Paste prompts here, separated by a blank line:\n\nWhat's the best project management software?\n\nHow does your pricing compare to competitors?\n\nWhat are the top alternatives to your product?`}
+									value={bulkInput}
+									onChange={(e) => setBulkInput(e.target.value)}
+									className={cn(
+										formTextareaClassName,
+										"min-h-[180px] resize-none shadow-[0_1px_2px_rgba(15,23,42,0.05),0_16px_36px_-22px_rgba(15,23,42,0.18)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.16),0_18px_40px_-24px_rgba(0,0,0,0.46)]",
+									)}
+								/>
+								{bulkInput.trim() &&
+									(() => {
+										const count = parseBulkPrompts(bulkInput).length;
+										return (
+											<p className="text-[11px] text-gray-500 sm:text-[12px] dark:text-gray-400">
+												{count} prompt{count === 1 ? "" : "s"} detected
+											</p>
+										);
+									})()}
+								<div className={formDialogSupportCardClassName}>
+									<p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-gray-500 dark:text-gray-400">
+										How to format
+									</p>
+									<p className="mt-1 text-sm leading-6 text-gray-700 dark:text-gray-300">
+										Separate each prompt with a blank line. A single prompt can
+										span multiple lines — just don&apos;t leave a blank line in
+										the middle of it.
+									</p>
+								</div>
+							</div>
+						) : (
+							<>
+								<div className="grid gap-2">
+									<Textarea
+										ref={promptTextareaRef}
+										placeholder={promptExample}
+										rows={2}
+										value={editIndex !== null ? editPromptValue : currentPrompt}
+										onChange={(e) => {
+											if (editIndex !== null) {
+												setEditPromptValue(e.target.value);
+											} else {
+												setCurrentPrompt(e.target.value);
+											}
 
-						<div className={formDialogSupportCardClassName}>
-							<p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-gray-500 dark:text-gray-400">
-								Strong Prompts Usually
-							</p>
-							<p className="mt-1 text-sm leading-6 text-gray-700 dark:text-gray-300">
-								focus on what the target audience is searching for: comparing
-								options, finding alternatives, evaluating pricing, or choosing
-								the best fit for a use case.
-							</p>
-						</div>
+											requestAnimationFrame(syncPromptTextareaHeight);
+										}}
+										className={cn(
+											formTextareaClassName,
+											"min-h-[76px] max-h-[220px] resize-none overflow-hidden shadow-[0_1px_2px_rgba(15,23,42,0.05),0_16px_36px_-22px_rgba(15,23,42,0.18)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.16),0_18px_40px_-24px_rgba(0,0,0,0.46)]",
+										)}
+									/>
+								</div>
+
+								<div className={formDialogSupportCardClassName}>
+									<p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-gray-500 dark:text-gray-400">
+										Strong Prompts Usually
+									</p>
+									<p className="mt-1 text-sm leading-6 text-gray-700 dark:text-gray-300">
+										focus on what the target audience is searching for:
+										comparing options, finding alternatives, evaluating pricing,
+										or choosing the best fit for a use case.
+									</p>
+								</div>
+							</>
+						)}
 					</div>
 					<div className="flex flex-col gap-3 px-5 pb-5 sm:flex-row sm:justify-end sm:px-6 sm:pb-6">
 						<Button
@@ -590,17 +702,30 @@ export default function Prompts() {
 						>
 							Cancel
 						</Button>
-						<Button
-							onClick={handleAddOrEditPrompt}
-							disabled={
-								editIndex !== null
-									? !isEditPromptChanged
-									: !currentPrompt.trim()
-							}
-							className={cn(formPrimaryButtonClassName, "w-full sm:w-auto")}
-						>
-							{editIndex !== null ? "Update" : "Add"}
-						</Button>
+						{bulkMode && editIndex === null ? (
+							<Button
+								onClick={handleAddBulkPrompts}
+								disabled={parseBulkPrompts(bulkInput).length === 0}
+								className={cn(formPrimaryButtonClassName, "w-full sm:w-auto")}
+							>
+								Add{" "}
+								{parseBulkPrompts(bulkInput).length > 0
+									? `${parseBulkPrompts(bulkInput).length} Prompt${parseBulkPrompts(bulkInput).length === 1 ? "" : "s"}`
+									: "Prompts"}
+							</Button>
+						) : (
+							<Button
+								onClick={handleAddOrEditPrompt}
+								disabled={
+									editIndex !== null
+										? !isEditPromptChanged
+										: !currentPrompt.trim()
+								}
+								className={cn(formPrimaryButtonClassName, "w-full sm:w-auto")}
+							>
+								{editIndex !== null ? "Update" : "Add"}
+							</Button>
+						)}
 					</div>
 				</DialogContent>
 			</Dialog>
@@ -724,6 +849,21 @@ export default function Prompts() {
 									const analyzedRows = sortedPromptsWithMetrics.filter(
 										(row) => row.metrics !== null,
 									);
+									const averageMetric = (
+										getValue: (
+											row: (typeof analyzedRows)[number],
+										) => number | null,
+									) => {
+										const values = analyzedRows
+											.map(getValue)
+											.filter((value): value is number => value !== null);
+										return values.length > 0
+											? Math.round(
+													values.reduce((sum, value) => sum + value, 0) /
+														values.length,
+												)
+											: null;
+									};
 									const topPrompt = analyzedRows
 										.slice()
 										.sort(
@@ -736,31 +876,27 @@ export default function Prompts() {
 											(a, b) =>
 												(a.metrics?.geoScore ?? 0) - (b.metrics?.geoScore ?? 0),
 										)[0];
-									const promptRows = sortedPromptsWithMetrics.map(
-										({ prompt, metrics, modelProvider, reason }) => ({
-											promptId: prompt.id,
-											prompt: prompt.prompt,
-											modelProvider,
-											geoScore: metrics?.geoScore ?? null,
-											sentiment: metrics?.sentiment ?? null,
-											visibility: metrics?.visibility ?? null,
-											position: metrics?.position ?? null,
-											reason: reason ?? null,
-											responses: filteredRecords
-												.filter((r) => r.prompt_id === prompt.id)
-												.map((r) => ({
-													model: r.model_provider,
-													promptRunAt: r.prompt_run_at,
-													response: r.response,
-													citations: r.sources?.length ?? 0,
-													sources: (r.sources ?? []).map((source) => ({
-														title: source.title ?? "",
-														url: source.url ?? "",
-														domain: source.domain ?? "",
-														citedText: source.cited_text ?? "",
-													})),
-												})),
+									const promptMetricRows = sortedPromptsWithMetrics.map(
+										(row) => ({
+											promptId: row.prompt.id,
+											prompt: row.prompt.prompt,
+											createdAt: row.prompt.created_at,
+											modelProvider: row.modelProvider,
+											recordCount: row.recordCount,
+											statusReason: row.reason,
+											geoScore: row.metrics?.geoScore ?? null,
+											sentiment: row.metrics?.sentiment ?? null,
+											visibility: row.metrics?.visibility ?? null,
+											position:
+												row.metrics?.position != null &&
+												row.metrics.position > 0
+													? row.metrics.position
+													: null,
+											sourceIndex: row.sourceIndex,
 										}),
+									);
+									const detailedRecords = filteredRecords.map((record) =>
+										buildDetailedAnalysisCsvRow(record),
 									);
 
 									downloadJson(`prompts-${workspaceId}-${Date.now()}.json`, {
@@ -781,8 +917,24 @@ export default function Prompts() {
 											analyzedPrompts: analyzedRows.length,
 											unanalyzedPrompts:
 												sortedPromptsWithMetrics.length - analyzedRows.length,
+											responseRecords: filteredRecords.length,
 										},
 										impactSummary: {
+											avgGeoScore: averageMetric(
+												(row) => row.metrics?.geoScore ?? null,
+											),
+											avgSentiment: averageMetric(
+												(row) => row.metrics?.sentiment ?? null,
+											),
+											avgVisibility: averageMetric(
+												(row) => row.metrics?.visibility ?? null,
+											),
+											avgPosition: averageMetric((row) =>
+												row.metrics?.position != null &&
+												row.metrics.position > 0
+													? row.metrics.position
+													: null,
+											),
 											highestGeoPrompt: topPrompt?.prompt.prompt ?? null,
 											highestGeoScore: topPrompt?.metrics?.geoScore ?? null,
 											lowestGeoPrompt: weakestPrompt?.prompt.prompt ?? null,
@@ -795,19 +947,53 @@ export default function Prompts() {
 											sortedPromptsWithMetrics.some(
 												(row) => row.reason === "brand-not-mentioned",
 											)
-												? "Revise prompts where brand is not mentioned to improve coverage."
+												? "Revise prompts where brand is not mentioned."
 												: null,
 										].filter(Boolean),
-										detailedData: {
-											rows: promptRows,
-										},
+										promptMetrics: promptMetricRows,
+										records: detailedRecords,
 									});
 								}}
 								onExportCsv={() => {
-									const analyzedPromptCount = sortedPromptsWithMetrics.filter(
+									const analyzedRows = sortedPromptsWithMetrics.filter(
 										(row) => row.metrics !== null,
-									).length;
-									const rows = [
+									);
+									const averageMetric = (
+										getValue: (
+											row: (typeof analyzedRows)[number],
+										) => number | null,
+									) => {
+										const values = analyzedRows
+											.map(getValue)
+											.filter((value): value is number => value !== null);
+										return values.length > 0
+											? Math.round(
+													values.reduce((sum, value) => sum + value, 0) /
+														values.length,
+												)
+											: "N/A";
+									};
+									const promptMetricRows = sortedPromptsWithMetrics.map(
+										(row) => ({
+											section: "prompt_metrics",
+											prompt_id: row.prompt.id,
+											prompt: row.prompt.prompt,
+											created_at: row.prompt.created_at,
+											model_provider: row.modelProvider ?? "",
+											record_count: row.recordCount,
+											status_reason: row.reason ?? "",
+											geo_score: row.metrics?.geoScore ?? "",
+											sentiment: row.metrics?.sentiment ?? "",
+											visibility: row.metrics?.visibility ?? "",
+											position:
+												row.metrics?.position != null &&
+												row.metrics.position > 0
+													? row.metrics.position
+													: "N/A",
+											source_index: row.sourceIndex,
+										}),
+									);
+									const overviewRows = [
 										{
 											section: "overview",
 											metric: "Total Prompts",
@@ -816,35 +1002,54 @@ export default function Prompts() {
 										{
 											section: "overview",
 											metric: "Analyzed Prompts",
-											value: analyzedPromptCount,
+											value: analyzedRows.length,
 										},
 										{
 											section: "overview",
 											metric: "Unanalyzed Prompts",
 											value:
-												sortedPromptsWithMetrics.length - analyzedPromptCount,
+												sortedPromptsWithMetrics.length - analyzedRows.length,
 										},
-										...sortedPromptsWithMetrics.map(
-											({ prompt, metrics, modelProvider, reason }) => {
-												const promptSources = filteredRecords
-													.filter((r) => r.prompt_id === prompt.id)
-													.flatMap((r) => r.sources ?? []);
-												return {
-													section: "prompt_details",
-													prompt: prompt.prompt,
-													model: modelProvider,
-													geo_score: metrics?.geoScore ?? "",
-													sentiment: metrics?.sentiment ?? "",
-													visibility: metrics?.visibility ?? "",
-													position: metrics?.position ?? "",
-													status: reason ?? "ok",
-													source_urls: joinSourceUrls(promptSources),
-													cited_texts: joinCitedTexts(promptSources),
-												};
-											},
-										),
+										{
+											section: "overview",
+											metric: "Avg GEO Score",
+											value: averageMetric(
+												(row) => row.metrics?.geoScore ?? null,
+											),
+										},
+										{
+											section: "overview",
+											metric: "Avg Sentiment",
+											value: averageMetric(
+												(row) => row.metrics?.sentiment ?? null,
+											),
+										},
+										{
+											section: "overview",
+											metric: "Avg Visibility",
+											value: averageMetric(
+												(row) => row.metrics?.visibility ?? null,
+											),
+										},
+										{
+											section: "overview",
+											metric: "Avg Position",
+											value: averageMetric((row) =>
+												row.metrics?.position != null &&
+												row.metrics.position > 0
+													? row.metrics.position
+													: null,
+											),
+										},
 									];
-									downloadCsv(`prompts-${workspaceId}-${Date.now()}.csv`, rows);
+									const detailRows = filteredRecords.map((r) =>
+										buildDetailedAnalysisCsvRow(r),
+									);
+									downloadCsv(`prompts-${workspaceId}-${Date.now()}.csv`, [
+										...overviewRows,
+										...promptMetricRows,
+										...detailRows,
+									]);
 								}}
 							/>
 						</div>
@@ -1053,9 +1258,7 @@ export default function Prompts() {
 											"shadow-[0_14px_30px_-28px_rgba(15,23,42,0.18)] dark:shadow-[0_14px_30px_-28px_rgba(0,0,0,0.45)]",
 									)}
 								>
-									<DialogHeader
-										className="relative z-[2] space-y-0.5 px-0 pt-1 pb-3 text-left"
-									>
+									<DialogHeader className="relative z-[2] space-y-0.5 px-0 pt-1 pb-3 text-left">
 										<DialogTitle
 											className={cn(
 												formSectionTitleClassName,
