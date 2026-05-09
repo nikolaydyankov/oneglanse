@@ -585,7 +585,7 @@ export default function Prompts() {
 					}
 				}}
 			>
-				<DialogContent className={cn(formDialogContentClassName, "max-w-lg")}>
+				<DialogContent className={cn(formDialogContentClassName, "max-w-lg max-h-[min(100dvh-1.5rem,80vh)] grid-rows-[auto,minmax(0,1fr),auto] flex flex-col")}>
 					<DialogHeader className={formDialogHeaderClassName}>
 						<DialogTitle className="font-medium">
 							{editIndex !== null ? "Edit Prompt" : "Add Prompt"}
@@ -594,7 +594,7 @@ export default function Prompts() {
 					<div
 						className={cn(
 							formDialogBodyClassName,
-							"gap-5 pt-4 sm:gap-6 sm:pt-5",
+							"gap-5 pt-4 sm:gap-6 sm:pt-5 overflow-y-auto min-h-0",
 						)}
 					>
 						{editIndex === null && (
@@ -694,7 +694,7 @@ export default function Prompts() {
 							</>
 						)}
 					</div>
-					<div className="flex flex-col gap-3 px-5 pb-5 sm:flex-row sm:justify-end sm:px-6 sm:pb-6">
+					<div className="flex flex-col gap-3 px-5 pb-5 sm:flex-row sm:justify-end sm:px-6 sm:pb-6 border-t border-gray-200/50 dark:border-gray-800/50 mt-auto pt-3 sm:pt-4">
 						<Button
 							variant="outline"
 							className={cn(formSecondaryButtonClassName, "w-full sm:w-auto")}
