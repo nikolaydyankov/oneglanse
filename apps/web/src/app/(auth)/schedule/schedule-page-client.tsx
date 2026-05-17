@@ -289,7 +289,7 @@ function PromptSelectionCard({ workspaceId }: { workspaceId: string }) {
 						</DialogDescription>
 					</DialogHeader>
 
-				<ScrollArea className="h-full min-h-0 max-h-[calc(100dvh-15rem)] overflow-hidden px-4 pt-2 sm:px-5">
+				<ScrollArea className="h-full min-h-0 max-h-[calc(100dvh-20rem)] overflow-hidden px-4 pt-2 sm:px-5">
 						<div className="space-y-2 pb-4">
 							<div
 								role="button"
