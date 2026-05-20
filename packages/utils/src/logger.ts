@@ -14,6 +14,41 @@ export function setProviderContextGetter(fn: () => string | undefined): void {
 	_getContext = fn;
 }
 
+// ── Log sink hook ─────────────────────────────────────────────────────────────
+// Agent runtime installs a sink via setLogSink() to mirror log lines into a
+// per-job buffer for persistence. The web app leaves it unset.
+
+let _logSink: ((line: string) => void) | null = null;
+
+export function setLogSink(fn: ((line: string) => void) | null): void {
+	_logSink = fn;
+}
+
+const ESC_BYTE = String.fromCharCode(0x1b);
+const ANSI_RE = new RegExp(`${ESC_BYTE}\\[[0-9;]*m`, "g");
+
+function stripAnsi(value: string): string {
+	return value.replace(ANSI_RE, "");
+}
+
+function stringifyArg(arg: unknown): string {
+	if (typeof arg === "string") return arg;
+	if (arg instanceof Error) return arg.stack || arg.message;
+	try {
+		return JSON.stringify(arg);
+	} catch {
+		return String(arg);
+	}
+}
+
+function emitToSink(prefix: string, args: unknown[]): void {
+	if (!_logSink) return;
+	const cleanPrefix = stripAnsi(prefix).trim();
+	const body = args.map((a) => stripAnsi(stringifyArg(a))).join(" ");
+	const line = cleanPrefix ? `${cleanPrefix} ${body}` : body;
+	_logSink(line);
+}
+
 // ── ANSI helpers ──────────────────────────────────────────────────────────────
 
 const R = "\x1b[0m";
@@ -82,33 +117,34 @@ function ts(): string {
 
 export const logger = {
 	log: (...args: unknown[]) => {
-		console.log(`${ts()} ${contextPrefix()}`, ...formatArgs(args));
+		const prefix = `${ts()} ${contextPrefix()}`;
+		console.log(prefix, ...formatArgs(args));
+		emitToSink(prefix, args);
 	},
 
 	warn: (...args: unknown[]) => {
-		console.warn(
-			`${ts()} ${contextPrefix()} ${YELLOW}⚠${R}`,
-			...formatArgs(args),
-		);
+		const prefix = `${ts()} ${contextPrefix()} ${YELLOW}⚠${R}`;
+		console.warn(prefix, ...formatArgs(args));
+		emitToSink(prefix, args);
 	},
 
 	error: (...args: unknown[]) => {
-		console.error(
-			`${ts()} ${contextPrefix()} ${RED}✕${R}`,
-			...formatArgs(args),
-		);
+		const prefix = `${ts()} ${contextPrefix()} ${RED}✕${R}`;
+		console.error(prefix, ...formatArgs(args));
+		emitToSink(prefix, args);
 	},
 
 	success: (...args: unknown[]) => {
-		console.log(
-			`${ts()} ${contextPrefix()} ${GREEN}✓${R}`,
-			...formatArgs(args),
-		);
+		const prefix = `${ts()} ${contextPrefix()} ${GREEN}✓${R}`;
+		console.log(prefix, ...formatArgs(args));
+		emitToSink(prefix, args);
 	},
 
 	debug: (...args: unknown[]) => {
 		if (!DEBUG_ENABLED) return;
-		console.log(`${ts()} ${DIM}${contextPrefix()}${R}`, ...formatArgs(args));
+		const prefix = `${ts()} ${DIM}${contextPrefix()}${R}`;
+		console.log(prefix, ...formatArgs(args));
+		emitToSink(prefix, args);
 	},
 };
 
@@ -121,20 +157,35 @@ export function createProviderLogger(provider: string): ProviderLogger {
 	const prefix = coloredPrefix(provider);
 
 	return {
-		log: (...args) => console.log(`${ts()} ${prefix}`, ...formatArgs(args)),
+		log: (...args) => {
+			const head = `${ts()} ${prefix}`;
+			console.log(head, ...formatArgs(args));
+			emitToSink(head, args);
+		},
 
-		warn: (...args) =>
-			console.warn(`${ts()} ${prefix} ${YELLOW}⚠${R}`, ...formatArgs(args)),
+		warn: (...args) => {
+			const head = `${ts()} ${prefix} ${YELLOW}⚠${R}`;
+			console.warn(head, ...formatArgs(args));
+			emitToSink(head, args);
+		},
 
-		error: (...args) =>
-			console.error(`${ts()} ${prefix} ${RED}✕${R}`, ...formatArgs(args)),
+		error: (...args) => {
+			const head = `${ts()} ${prefix} ${RED}✕${R}`;
+			console.error(head, ...formatArgs(args));
+			emitToSink(head, args);
+		},
 
-		success: (...args) =>
-			console.log(`${ts()} ${prefix} ${GREEN}✓${R}`, ...formatArgs(args)),
+		success: (...args) => {
+			const head = `${ts()} ${prefix} ${GREEN}✓${R}`;
+			console.log(head, ...formatArgs(args));
+			emitToSink(head, args);
+		},
 
 		debug: (...args) => {
 			if (!DEBUG_ENABLED) return;
-			console.log(`${ts()} ${DIM}${prefix}${R}`, ...formatArgs(args));
+			const head = `${ts()} ${DIM}${prefix}${R}`;
+			console.log(head, ...formatArgs(args));
+			emitToSink(head, args);
 		},
 	};
 }

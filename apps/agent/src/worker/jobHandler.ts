@@ -1,10 +1,15 @@
-import { ValidationError, classifyError, toErrorMessage } from "@oneglanse/errors";
+import {
+	ValidationError,
+	classifyError,
+	toErrorMessage,
+} from "@oneglanse/errors";
 import {
 	buildProviderCancelKey,
 	buildProviderJobId,
 	hasRuntimeProviderAuth,
 	redis,
 	storePromptResponses,
+	updateJobRunStatus,
 	updateProviderProgress,
 	writeProviderAuthStatus,
 } from "@oneglanse/services";
@@ -22,9 +27,15 @@ import { agentHandler } from "../core/agentHandler.js";
 import { createAgent } from "../core/createAgent.js";
 import { PROVIDER_CONFIGS } from "../core/providers/index.js";
 import { StopProviderRunError } from "../lib/browser/proxy/runner.js";
+import { withLogCapture } from "../lib/logCapture.js";
 import { runAnalysisInBackground } from "./analysis.js";
 
-type ProviderStatus = "pending" | "running" | "completed" | "failed" | "stopped";
+type ProviderStatus =
+	| "pending"
+	| "running"
+	| "completed"
+	| "failed"
+	| "stopped";
 type ProviderJobData = {
 	jobGroupId: string;
 	provider: Provider;
@@ -37,6 +48,25 @@ type ProviderJobData = {
 
 const AGENT_PROGRESS_TTL_SECONDS = 24 * 60 * 60;
 const activeProviderStops = new Map<string, () => Promise<void>>();
+
+function buildErrorDetails(err: unknown): Record<string, unknown> {
+	if (err instanceof Error) {
+		const details: Record<string, unknown> = {
+			name: err.name,
+			message: err.message,
+		};
+		if (err.stack) details.stack = err.stack;
+		for (const key of Object.keys(err)) {
+			const value = (err as unknown as Record<string, unknown>)[key];
+			if (value !== undefined) details[key] = value;
+		}
+		return details;
+	}
+	if (typeof err === "object" && err !== null) {
+		return err as Record<string, unknown>;
+	}
+	return { value: String(err) };
+}
 
 function buildProgressSeed(providers: Provider[], promptCount: number): string {
 	return JSON.stringify({
@@ -150,6 +180,17 @@ export async function handleJob(job: Job<ProviderJobData>): Promise<boolean> {
 				}),
 			),
 		);
+		await Promise.all(
+			ownedProviders.map((currentProvider) =>
+				updateJobRunStatus({
+					jobGroupId,
+					provider: currentProvider,
+					status: "failed",
+					responseCount: 0,
+					errorMessage: "No authenticated session for this provider",
+				}),
+			),
+		);
 		return true;
 	}
 
@@ -166,6 +207,17 @@ export async function handleJob(job: Job<ProviderJobData>): Promise<boolean> {
 					provider: currentProvider,
 					status: "failed",
 					resultCount: 0,
+				}),
+			),
+		);
+		await Promise.all(
+			ownedProviders.map((currentProvider) =>
+				updateJobRunStatus({
+					jobGroupId,
+					provider: currentProvider,
+					status: "failed",
+					responseCount: 0,
+					errorMessage: "Provider disabled in provider registry",
 				}),
 			),
 		);
@@ -192,6 +244,9 @@ export async function handleJob(job: Job<ProviderJobData>): Promise<boolean> {
 		await activeAttemptCleanup?.().catch(() => {});
 	});
 
+	let failureError: unknown = null;
+	let capturedLogs: string[] = [];
+
 	try {
 		try {
 			await Promise.all(
@@ -204,6 +259,15 @@ export async function handleJob(job: Job<ProviderJobData>): Promise<boolean> {
 					}),
 				),
 			);
+			await Promise.all(
+				ownedProviders.map((currentProvider) =>
+					updateJobRunStatus({
+						jobGroupId,
+						provider: currentProvider,
+						status: "running",
+					}),
+				),
+			);
 
 			if (
 				(await redis.get(buildProviderCancelKey(jobGroupId, provider))) === "1"
@@ -211,12 +275,8 @@ export async function handleJob(job: Job<ProviderJobData>): Promise<boolean> {
 				throw new StopProviderRunError(provider);
 			}
 
-			const result = await agentHandler(
-				label,
-				() => createAgent(provider),
-				payload,
-				provider,
-				{
+			const captured = await withLogCapture(async () =>
+				agentHandler(label, () => createAgent(provider), payload, provider, {
 					signal: stopController.signal,
 					onAttemptStart: (attempt) => {
 						activeAttemptCleanup = async () => {
@@ -235,8 +295,13 @@ export async function handleJob(job: Job<ProviderJobData>): Promise<boolean> {
 							resultCount: current,
 						});
 					},
-				},
+				}),
 			);
+			capturedLogs = captured.lines;
+			if (captured.status === "error") {
+				throw captured.error;
+			}
+			const result = captured.result;
 
 			// agentHandler handles StopProviderRunError internally and returns
 			// partial/empty results — check signal here to still mark as stopped.
@@ -261,8 +326,21 @@ export async function handleJob(job: Job<ProviderJobData>): Promise<boolean> {
 						}),
 					),
 				);
+				await Promise.all(
+					ownedProviders.map((currentProvider) =>
+						updateJobRunStatus({
+							jobGroupId,
+							provider: currentProvider,
+							status: "stopped",
+							responseCount: 0,
+							errorDetails:
+								capturedLogs.length > 0 ? { logs: capturedLogs } : undefined,
+						}),
+					),
+				);
 				return true;
 			}
+			failureError = err;
 			plog.error("failed:", toErrorMessage(err));
 			if (
 				classifyError(err) === "logged_out" &&
@@ -324,6 +402,40 @@ export async function handleJob(job: Job<ProviderJobData>): Promise<boolean> {
 					resultCount: providerResults[currentProvider].data.length,
 				}),
 			),
+		);
+
+		const failureErrorMessage = failureError
+			? toErrorMessage(failureError)
+			: undefined;
+		const failureErrorDetails = failureError
+			? buildErrorDetails(failureError)
+			: undefined;
+
+		await Promise.all(
+			ownedProviders.map((currentProvider) => {
+				const isFulfilled =
+					providerResults[currentProvider].status === "fulfilled";
+				const synthesizedMessage =
+					!isFulfilled && !failureErrorMessage
+						? "All prompts failed — see logs"
+						: failureErrorMessage;
+				const hasLogs = capturedLogs.length > 0;
+				const errorDetails =
+					hasLogs || failureErrorDetails
+						? {
+								...(hasLogs ? { logs: capturedLogs } : {}),
+								...(failureErrorDetails ? { error: failureErrorDetails } : {}),
+							}
+						: undefined;
+				return updateJobRunStatus({
+					jobGroupId,
+					provider: currentProvider,
+					status: isFulfilled ? "completed" : "failed",
+					responseCount: providerResults[currentProvider].data.length,
+					errorMessage: isFulfilled ? undefined : synthesizedMessage,
+					errorDetails,
+				});
+			}),
 		);
 
 		return true;

@@ -3,6 +3,7 @@ export { fetchPromptSourcesForWorkspace } from "./fetchPromptSourcesForWorkspace
 export { fetchUserPromptsForWorkspace } from "./fetchUserPromptsForWorkspace.js";
 export {
 	configureSchedulerSecrets,
+	ensureJobRunsRetentionSchedule,
 	scheduleCronForPrompts,
 	unscheduleCronForPrompts,
 } from "./scheduler.js";

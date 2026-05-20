@@ -15,6 +15,6 @@ export const internalRouter = createTRPCRouter({
 		)
 		.mutation(async ({ input }) => {
 			const { workspaceId, userId } = input;
-			return submitAgentRun({ workspaceId, userId });
+			return submitAgentRun({ workspaceId, userId, trigger: "scheduled" });
 		}),
 });

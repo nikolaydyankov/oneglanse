@@ -1,4 +1,6 @@
+import type { AgentJobTrigger } from "@oneglanse/services";
 import { submitAgentJobGroup } from "@oneglanse/services";
+import type { Provider } from "@oneglanse/types";
 
 type SubmitAgentRunResult =
 	| { jobId: string; status: "queued" }
@@ -8,6 +10,8 @@ type SubmitAgentRunResult =
 export async function submitAgentRun(args: {
 	workspaceId: string;
 	userId: string;
+	trigger: AgentJobTrigger;
+	providerFilter?: Provider[];
 }): Promise<SubmitAgentRunResult> {
 	const result = await submitAgentJobGroup(args);
 

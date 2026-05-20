@@ -19,7 +19,7 @@ export const agentRouter = createTRPCRouter({
 				workspaceId,
 			} = ctx;
 
-			return submitAgentRun({ workspaceId, userId });
+			return submitAgentRun({ workspaceId, userId, trigger: "manual" });
 		}),
 
 	status: authorizedWorkspaceProcedure

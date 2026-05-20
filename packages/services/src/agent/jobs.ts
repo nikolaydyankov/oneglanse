@@ -1,7 +1,9 @@
 import { randomUUID } from "node:crypto";
+import { db, schema } from "@oneglanse/db";
 import { toErrorMessage } from "@oneglanse/errors";
 import type { Provider, UserPrompt } from "@oneglanse/types";
 import { PROVIDER_LIST } from "@oneglanse/types";
+import { and, eq, inArray } from "drizzle-orm";
 import { fetchUserPromptsForWorkspace } from "../prompt/index.js";
 import { getWorkspaceById } from "../workspace/index.js";
 import {
@@ -12,6 +14,8 @@ import {
 import { updateProviderProgress } from "./progress.js";
 import { getProviderQueue } from "./queue.js";
 import { redis, waitForRedis } from "./redis.js";
+
+export type AgentJobTrigger = "scheduled" | "manual" | "retry";
 
 const AGENT_PROGRESS_TTL_SECONDS = 24 * 60 * 60;
 const PROVIDER_STOP_CHANNEL = "oneglanse:agent:provider-stop";
@@ -125,6 +129,7 @@ export async function enqueueProviderJobs(args: {
 async function markProvidersFailed(args: {
 	jobGroupId: string;
 	providers: Provider[];
+	errorMessage?: string;
 }): Promise<void> {
 	await Promise.all(
 		args.providers.map((provider) =>
@@ -136,6 +141,54 @@ async function markProvidersFailed(args: {
 			}),
 		),
 	);
+
+	try {
+		await db
+			.update(schema.jobRuns)
+			.set({
+				status: "failed",
+				completedAt: new Date(),
+				errorMessage: args.errorMessage ?? "Failed to enqueue provider job",
+			})
+			.where(
+				and(
+					eq(schema.jobRuns.jobGroupId, args.jobGroupId),
+					inArray(schema.jobRuns.provider, args.providers),
+				),
+			);
+	} catch (err) {
+		console.error(
+			`[agent] failed to mark job_runs failed for group ${args.jobGroupId}: ${toErrorMessage(err)}`,
+		);
+	}
+}
+
+async function insertJobRuns(args: {
+	jobGroupId: string;
+	workspaceId: string;
+	userId: string;
+	providers: Provider[];
+	trigger: AgentJobTrigger;
+	promptCount: number;
+}): Promise<void> {
+	if (args.providers.length === 0) return;
+	try {
+		await db.insert(schema.jobRuns).values(
+			args.providers.map((provider) => ({
+				jobGroupId: args.jobGroupId,
+				workspaceId: args.workspaceId,
+				userId: args.userId,
+				provider,
+				trigger: args.trigger,
+				status: "pending" as const,
+				promptCount: args.promptCount,
+			})),
+		);
+	} catch (err) {
+		console.error(
+			`[agent] failed to insert job_runs rows for group ${args.jobGroupId}: ${toErrorMessage(err)}`,
+		);
+	}
 }
 
 /**
@@ -147,8 +200,10 @@ async function markProvidersFailed(args: {
 export async function submitAgentJobGroup(args: {
 	workspaceId: string;
 	userId: string;
+	trigger: AgentJobTrigger;
+	providerFilter?: Provider[];
 }): Promise<SubmitAgentJobResult> {
-	const { workspaceId, userId } = args;
+	const { workspaceId, userId, trigger, providerFilter } = args;
 
 	let prompts: UserPrompt[];
 	let allowedProviders: Provider[];
@@ -169,6 +224,10 @@ export async function submitAgentJobGroup(args: {
 					),
 				)
 			: [...PROVIDER_LIST];
+		if (providerFilter && providerFilter.length > 0) {
+			const filterSet = new Set(providerFilter);
+			allowedProviders = allowedProviders.filter((p) => filterSet.has(p));
+		}
 	} catch (err) {
 		throw new Error(`failed to load workspace prompts: ${toErrorMessage(err)}`);
 	}
@@ -192,6 +251,15 @@ export async function submitAgentJobGroup(args: {
 		return { status: "no-providers", disconnectedProviders };
 	}
 	await waitForRedis();
+
+	await insertJobRuns({
+		jobGroupId,
+		workspaceId,
+		userId,
+		providers: authenticatedProviders,
+		trigger,
+		promptCount: prompts.length,
+	});
 
 	const progress = {
 		status: "pending" as const,
@@ -244,6 +312,63 @@ export async function submitAgentJobGroup(args: {
 		});
 
 	return { status: "queued", jobGroupId };
+}
+
+export type JobRunStatus =
+	| "pending"
+	| "running"
+	| "completed"
+	| "failed"
+	| "stopped";
+
+export async function updateJobRunStatus(args: {
+	jobGroupId: string;
+	provider: Provider;
+	status: JobRunStatus;
+	responseCount?: number;
+	errorMessage?: string;
+	errorDetails?: unknown;
+}): Promise<void> {
+	const {
+		jobGroupId,
+		provider,
+		status,
+		responseCount,
+		errorMessage,
+		errorDetails,
+	} = args;
+	const isTerminal =
+		status === "completed" || status === "failed" || status === "stopped";
+
+	try {
+		const updates: Partial<typeof schema.jobRuns.$inferInsert> = { status };
+		if (typeof responseCount === "number") {
+			updates.responseCount = responseCount;
+		}
+		if (isTerminal) {
+			updates.completedAt = new Date();
+		}
+		if (errorMessage !== undefined) {
+			updates.errorMessage = errorMessage;
+		}
+		if (errorDetails !== undefined) {
+			updates.errorDetails = errorDetails as never;
+		}
+
+		await db
+			.update(schema.jobRuns)
+			.set(updates)
+			.where(
+				and(
+					eq(schema.jobRuns.jobGroupId, jobGroupId),
+					eq(schema.jobRuns.provider, provider),
+				),
+			);
+	} catch (err) {
+		console.error(
+			`[agent] failed to update job_runs row (${jobGroupId} / ${provider}): ${toErrorMessage(err)}`,
+		);
+	}
 }
 
 export async function cancelProviderRun(args: {

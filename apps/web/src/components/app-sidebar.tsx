@@ -37,6 +37,7 @@ import {
 	Clock,
 	Globe,
 	LayoutGrid,
+	ListChecks,
 	Loader2,
 	MessageSquare,
 	Plug,
@@ -135,6 +136,12 @@ export function AppSidebar({
 		title: "Schedule",
 		url: `/schedule?workspace=${activeWorkspace?.id ?? ""}`,
 		icon: Clock,
+	});
+
+	generalItems.splice(4, 0, {
+		title: "Jobs",
+		url: `/jobs?workspace=${activeWorkspace?.id ?? ""}`,
+		icon: ListChecks,
 	});
 
 	const settingsItems = [

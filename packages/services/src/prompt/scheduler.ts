@@ -132,3 +132,32 @@ export async function unscheduleCronForPrompts(
 		// Schedule may not exist
 	}
 }
+
+const JOB_RUNS_RETENTION_SCHEDULE_NAME = "job_runs_retention";
+
+/**
+ * Installs a daily pg_cron job that prunes job_runs older than 30 days.
+ * Idempotent: unschedules any existing entry with the same name first.
+ */
+export async function ensureJobRunsRetentionSchedule(): Promise<void> {
+	try {
+		await pool.query("SELECT cron.unschedule($1);", [
+			JOB_RUNS_RETENTION_SCHEDULE_NAME,
+		]);
+	} catch {
+		// Not installed yet
+	}
+
+	try {
+		await pool.query("SELECT cron.schedule($1, $2, $3);", [
+			JOB_RUNS_RETENTION_SCHEDULE_NAME,
+			"0 3 * * *",
+			"DELETE FROM job_runs WHERE started_at < now() - interval '30 days'",
+		]);
+	} catch (err) {
+		console.warn(
+			"[scheduler] failed to install job_runs retention cron:",
+			toErrorMessage(err),
+		);
+	}
+}
