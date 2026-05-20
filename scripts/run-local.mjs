@@ -18,7 +18,8 @@ import {
 	waitForHttp,
 } from "./lib/runtime.mjs";
 
-const localAppUrl = "http://localhost:3000";
+const localWebPort = process.env.WEB_PORT || "4104";
+const localAppUrl = `http://localhost:${localWebPort}`;
 
 async function main() {
 	await ensureEnvFiles();
@@ -57,7 +58,7 @@ async function main() {
 			"--hostname",
 			"localhost",
 			"--port",
-			"3000",
+			localWebPort,
 		],
 		{
 			env: localEnv,

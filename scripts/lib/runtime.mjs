@@ -260,7 +260,9 @@ export function buildLocalRuntimeEnv(localAppUrl) {
 	const postgresUser = process.env.POSTGRES_USER || "postgres";
 	const postgresPassword = process.env.POSTGRES_PASSWORD || "postgres";
 	const postgresDatabase = process.env.POSTGRES_DB || "oneglanse";
-	const redisPort = process.env.REDIS_PORT || "6379";
+	const redisPort = process.env.REDIS_PORT || "4101";
+	const dbPort = process.env.DB_PORT || "4102";
+	const clickhousePort = process.env.CLICKHOUSE_PORT || "4103";
 	const localLocale =
 		process.env.CAMOUFOX_LOCALE ||
 		Intl.DateTimeFormat().resolvedOptions().locale ||
@@ -272,8 +274,8 @@ export function buildLocalRuntimeEnv(localAppUrl) {
 		API_BASE_URL: localAppUrl,
 		BETTER_AUTH_URL: localAppUrl,
 		NEXT_PUBLIC_API_URL: localAppUrl,
-		DATABASE_URL: `postgresql://${encodeSegment(postgresUser)}:${encodeSegment(postgresPassword)}@localhost:5432/${encodeSegment(postgresDatabase)}`,
-		CLICKHOUSE_URL: "http://localhost:8123",
+		DATABASE_URL: `postgresql://${encodeSegment(postgresUser)}:${encodeSegment(postgresPassword)}@localhost:${dbPort}/${encodeSegment(postgresDatabase)}`,
+		CLICKHOUSE_URL: `http://localhost:${clickhousePort}`,
 		REDIS_HOST: "localhost",
 		REDIS_PORT: redisPort,
 		CAMOUFOX_HEADLESS_MODE: "headless",

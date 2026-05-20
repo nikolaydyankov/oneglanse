@@ -24,10 +24,12 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-oneglanse}
       CLICKHOUSE_URL: http://clickhouse:8123
       REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      WORKER_PORT: "3333"
     volumes:
       - ${ONEGLANSE_STORAGE_ROOT:-/opt/oneglanse/storage}:/storage
     ports:
-      - "3333:3333"
+      - "${WORKER_PORT:-4100}:3333"
     depends_on:
       redis:
         condition: service_healthy
@@ -66,7 +68,7 @@ services:
     volumes:
       - redis_data:/data
     ports:
-      - "127.0.0.1:6379:6379"
+      - "127.0.0.1:${REDIS_PORT:-4101}:6379"
     networks:
       - data
     deploy:
@@ -104,7 +106,7 @@ services:
       - db_data:/var/lib/postgresql/data
       - ./packages/db/init-scripts:/docker-entrypoint-initdb.d
     ports:
-      - "127.0.0.1:5432:5432"
+      - "127.0.0.1:${DB_PORT:-4102}:5432"
     networks:
       - data
     deploy:
@@ -134,7 +136,7 @@ services:
       - clickhouse_data:/var/lib/clickhouse
       - ./packages/db/clickhouse-init:/docker-entrypoint-initdb.d
     ports:
-      - "127.0.0.1:8123:8123"
+      - "127.0.0.1:${CLICKHOUSE_PORT:-4103}:8123"
     networks:
       - data
     deploy:
@@ -173,10 +175,11 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-oneglanse}
       CLICKHOUSE_URL: http://clickhouse:8123
       REDIS_HOST: redis
+      REDIS_PORT: "6379"
     volumes:
       - ${ONEGLANSE_STORAGE_ROOT:-/opt/oneglanse/storage}:/storage:ro
     ports:
-      - "127.0.0.1:3000:3000"
+      - "127.0.0.1:${WEB_PORT:-4104}:3000"
     networks:
       - edge
       - frontend

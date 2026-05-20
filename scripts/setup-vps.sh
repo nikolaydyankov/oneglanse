@@ -182,6 +182,12 @@ fi
 
 success ".env configured"
 
+# Load the host-side port overrides so subsequent steps (health check, nginx) use them.
+set -a
+# shellcheck disable=SC1091
+source .env
+set +a
+
 # ─── Start the stack ──────────────────────────────────────────────────────────
 
 header "4 / 6 — Starting OneGlanse"
@@ -199,8 +205,8 @@ fi
 
 info "Waiting for web container to become healthy..."
 for i in $(seq 1 30); do
-  if curl -sf http://127.0.0.1:3000 >/dev/null 2>&1; then
-    success "Web app is responding on port 3000"
+  if curl -sf "http://127.0.0.1:${WEB_PORT:-4104}" >/dev/null 2>&1; then
+    success "Web app is responding on port ${WEB_PORT:-4104}"
     break
   fi
   sleep 3
@@ -221,7 +227,7 @@ server {
     server_name ${DOMAIN};
 
     location / {
-        proxy_pass         http://127.0.0.1:3000;
+        proxy_pass         http://127.0.0.1:${WEB_PORT:-4104};
         proxy_http_version 1.1;
         proxy_set_header   Upgrade \$http_upgrade;
         proxy_set_header   Connection 'upgrade';

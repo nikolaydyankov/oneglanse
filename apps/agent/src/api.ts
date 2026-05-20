@@ -7,7 +7,7 @@ import { logger } from "@oneglanse/utils";
 import { env } from "./env.js";
 
 const AGENT_API_HOST = "0.0.0.0";
-const AGENT_API_PORT = 3333;
+const AGENT_API_PORT = Number(process.env.WORKER_PORT) || 3333;
 
 function safeTokenCompare(expected: string, actual: string): boolean {
 	if (expected.length === 0 || expected.length !== actual.length) {

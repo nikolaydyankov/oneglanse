@@ -218,7 +218,8 @@ function resolveUploadUrl() {
 	}
 
 	const baseUrl = normalizeBaseUrl(vpsIp);
-	return `${baseUrl}:3333/auth/sessions`;
+	const workerPort = process.env.WORKER_PORT || "4100";
+	return `${baseUrl}:${workerPort}/auth/sessions`;
 }
 
 async function main() {
