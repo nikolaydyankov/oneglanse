@@ -3,7 +3,7 @@ import "server-only";
 import { createTRPCRouter } from "@/server/api/trpc";
 import { schema } from "@oneglanse/db";
 import { ValidationError } from "@oneglanse/errors";
-import { submitAgentJobGroup } from "@oneglanse/services";
+import { clearWorkspaceJobData, submitAgentJobGroup } from "@oneglanse/services";
 import type { Provider } from "@oneglanse/types";
 import { PROVIDER_LIST } from "@oneglanse/types";
 import { and, eq, inArray } from "drizzle-orm";
@@ -23,6 +23,10 @@ const getDetailsInputSchema = z.object({
 const retryInputSchema = z.object({
 	workspaceId: z.string(),
 	jobGroupId: z.string().uuid(),
+});
+
+const clearAllInputSchema = z.object({
+	workspaceId: z.string(),
 });
 
 export const jobsRouter = createTRPCRouter({
@@ -98,6 +102,25 @@ export const jobsRouter = createTRPCRouter({
 				providerFilter: [...providerSet],
 			});
 
+			if (result.status === "queued") {
+				await ctx.db
+					.delete(schema.jobRuns)
+					.where(
+						and(
+							eq(schema.jobRuns.jobGroupId, input.jobGroupId),
+							eq(schema.jobRuns.workspaceId, input.workspaceId),
+							inArray(schema.jobRuns.status, ["failed", "stopped"]),
+						),
+					);
+			}
+
 			return result;
+		}),
+
+	clearAll: authorizedWorkspaceProcedure
+		.input(clearAllInputSchema)
+		.mutation(async ({ input }) => {
+			await clearWorkspaceJobData({ workspaceId: input.workspaceId });
+			return { status: "cleared" as const };
 		}),
 });

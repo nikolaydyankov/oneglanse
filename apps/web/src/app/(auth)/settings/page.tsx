@@ -92,6 +92,12 @@ export default function SettingsPage() {
 	const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 	const deleteAccountMutation = api.workspace.deleteAccount.useMutation();
 
+	// Clear job data state
+	const [showClearDataDialog, setShowClearDataDialog] = useState(false);
+	const [clearConfirmText, setClearConfirmText] = useState("");
+	const utils = api.useUtils();
+	const clearJobDataMutation = api.jobs.clearAll.useMutation();
+
 	const userPromptsQuery = api.prompt.fetchUserPrompts.useQuery(
 		{ workspaceId },
 		{ enabled: !!workspaceId },
@@ -118,6 +124,32 @@ export default function SettingsPage() {
 			domain: workspaceQuery.data?.domain,
 		},
 	);
+
+	const workspaceName = workspaceQuery.data?.name ?? "";
+
+	const handleClearJobData = async () => {
+		if (!workspaceId) return;
+		if (clearConfirmText.trim() !== workspaceName) {
+			toast.error("Workspace name does not match.");
+			return;
+		}
+		try {
+			await clearJobDataMutation.mutateAsync({ workspaceId });
+			await Promise.all([
+				utils.jobs.list.invalidate({ workspaceId }),
+				utils.analysis.fetchAnalysis.invalidate({ workspaceId }),
+				utils.prompt.fetchPromptSources.invalidate({ workspaceId }),
+			]);
+			toast.success("Job data cleared.");
+			setShowClearDataDialog(false);
+			setClearConfirmText("");
+		} catch (err) {
+			console.error(err);
+			toast.error(
+				err instanceof Error ? err.message : "Failed to clear job data.",
+			);
+		}
+	};
 
 	// Delete account handler
 	const handleDeleteAccount = async () => {
@@ -506,6 +538,45 @@ export default function SettingsPage() {
 				</section>
 			) : null}
 
+			{workspaceId ? (
+				<section>
+					<div className="mb-4 flex items-center gap-2">
+						<h2 className="text-base font-semibold text-gray-900 sm:text-lg dark:text-gray-100">
+							Workspace Data
+						</h2>
+					</div>
+					<div className={cn(formPanelClassName, "space-y-3 p-5")}>
+						<div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+							<div>
+								<p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+									Clear Job Data
+								</p>
+								<p className={cn(formHintClassName, "mt-1")}>
+									Delete all run history, responses, and analysis for this
+									workspace. Prompts and provider connections are kept. This
+									cannot be undone.
+								</p>
+							</div>
+							<Button
+								className={cn(
+									formSecondaryButtonClassName,
+									subtleBorderButtonClassName,
+									destructiveSubtleBorderButtonClassName,
+									"h-10 w-auto shrink-0 self-start px-4 sm:self-auto",
+								)}
+								disabled={!workspaceName}
+								onClick={() => {
+									setClearConfirmText("");
+									setShowClearDataDialog(true);
+								}}
+							>
+								Clear Job Data
+							</Button>
+						</div>
+					</div>
+				</section>
+			) : null}
+
 			{/* Danger Zone */}
 			<section>
 				<div className="mb-4 flex items-center gap-2">
@@ -617,6 +688,93 @@ export default function SettingsPage() {
 								<Loader2 className="h-4 w-4 animate-spin" />
 							) : (
 								"Permanently delete account"
+							)}
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+
+			{/* Clear Job Data Confirmation Dialog */}
+			<Dialog
+				open={showClearDataDialog}
+				onOpenChange={(open) => {
+					setShowClearDataDialog(open);
+					if (!open) setClearConfirmText("");
+				}}
+			>
+				<DialogContent className={formDialogContentClassName}>
+					<DialogHeader className={formDialogHeaderClassName}>
+						<DialogTitle className="text-lg font-semibold tracking-[-0.01em] text-gray-950 dark:text-gray-50">
+							Clear Job Data
+						</DialogTitle>
+					</DialogHeader>
+
+					<div className="px-4 sm:px-4.5 lg:px-5">
+						<div className="rounded-[var(--app-radius)] border border-amber-200 bg-amber-50 px-3 py-3 dark:border-amber-900/60 dark:bg-amber-950/20">
+							<p className="text-xs leading-5 text-amber-800 dark:text-amber-300">
+								This permanently removes all prompt responses, brand analysis,
+								and run history for this workspace. Prompts and provider
+								connections are kept.
+							</p>
+						</div>
+					</div>
+
+					<div className={formDialogBodyClassName}>
+						<div className="space-y-2">
+							<Label
+								htmlFor="clear-confirm-text"
+								className="text-sm font-medium text-gray-700 dark:text-gray-300"
+							>
+								Type the workspace name{" "}
+								<span className="font-mono text-xs text-gray-500">
+									({workspaceName})
+								</span>{" "}
+								to confirm
+							</Label>
+
+							<Input
+								id="clear-confirm-text"
+								type="text"
+								placeholder={workspaceName}
+								value={clearConfirmText}
+								onChange={(e) => setClearConfirmText(e.target.value)}
+								onKeyDown={(e) => e.key === "Enter" && handleClearJobData()}
+								className={cn(formFieldClassName, "h-9")}
+							/>
+						</div>
+					</div>
+
+					<DialogFooter className={formDialogFooterClassName}>
+						<Button
+							className={cn(
+								formSecondaryButtonClassName,
+								subtleBorderButtonClassName,
+								"w-full sm:w-auto",
+							)}
+							onClick={() => setShowClearDataDialog(false)}
+							disabled={clearJobDataMutation.isPending}
+						>
+							Cancel
+						</Button>
+
+						<Button
+							className={cn(
+								formSecondaryButtonClassName,
+								subtleBorderButtonClassName,
+								destructiveSubtleBorderButtonClassName,
+								"w-full sm:w-auto",
+							)}
+							onClick={handleClearJobData}
+							disabled={
+								clearJobDataMutation.isPending ||
+								!workspaceName ||
+								clearConfirmText.trim() !== workspaceName
+							}
+						>
+							{clearJobDataMutation.isPending ? (
+								<Loader2 className="h-4 w-4 animate-spin" />
+							) : (
+								"Permanently clear job data"
 							)}
 						</Button>
 					</DialogFooter>
